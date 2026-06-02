@@ -1,0 +1,139 @@
+{% extends "store/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <h1 style="font-size:1.8rem;font-weight:700;margin:0">
+      <i class="bi bi-cart3 me-2" style="color:var(--brand-primary)"></i>Your Cart
+    </h1>
+    {% if cart.total_items %}
+    <span class="status-badge status-CONFIRMED">{{ cart.total_items }} item{{ cart.total_items|pluralize }}</span>
+    {% endif %}
+  </div>
+
+  {% if cart.items %}
+  <div class="row g-4">
+
+    <!-- ── Cart Items ─────────────────────────────────────────────── -->
+    <div class="col-lg-8">
+      <div class="d-flex flex-column gap-3">
+        {% for item in cart.items %}
+        <div class="cart-item">
+
+          <!-- Image placeholder -->
+          <div class="cart-item-img d-flex align-items-center justify-content-center"
+               style="font-size:1.8rem;background:var(--bg-card-hover)">📦</div>
+
+          <!-- Details -->
+          <div class="flex-grow-1 min-w-0">
+            <div class="cart-item-name">{{ item.name|default:"Product #"|add:item.product_id|truncatechars:50 }}</div>
+            <div class="cart-item-sku">SKU: {{ item.sku|default:"–" }}</div>
+            <div class="cart-item-price mt-1">₹{{ item.unit_price|default:item.price }}</div>
+          </div>
+
+          <!-- Qty update form -->
+          <form method="post" action="{% url 'cart-update' %}" class="cart-qty-form d-flex align-items-center gap-1">
+            {% csrf_token %}
+            <input type="hidden" name="product_id" value="{{ item.product_id }}">
+            <div class="qty-stepper d-flex align-items-center"
+                 style="background:var(--bg-card-hover);border:1px solid var(--glass-border);border-radius:8px">
+              <button type="button" class="btn btn-sm" data-action="dec"
+                      style="color:var(--text-muted);background:none;border:none;padding:.2rem .5rem">−</button>
+              <input type="number" name="quantity" class="qty-input" value="{{ item.quantity }}" min="1" max="99">
+              <button type="button" class="btn btn-sm" data-action="inc"
+                      style="color:var(--text-muted);background:none;border:none;padding:.2rem .5rem">+</button>
+            </div>
+            <button type="submit" class="btn btn-sm" title="Update"
+                    style="background:rgba(108,71,255,0.12);border:1px solid rgba(108,71,255,0.2);color:var(--brand-primary);padding:.3rem .6rem">
+              <i class="bi bi-check2"></i>
+            </button>
+          </form>
+
+          <!-- Subtotal -->
+          <div class="text-end" style="min-width:90px">
+            <div style="font-weight:700;color:var(--text-primary)">₹{{ item.subtotal }}</div>
+            <div style="font-size:.75rem;color:var(--text-muted)">
+              {{ item.quantity }} × ₹{{ item.unit_price|default:item.price }}
+            </div>
+          </div>
+
+          <!-- Remove -->
+          <form method="post" action="{% url 'cart-remove' %}">
+            {% csrf_token %}
+            <input type="hidden" name="product_id" value="{{ item.product_id }}">
+            <button type="submit" class="btn btn-danger-soft btn-sm" title="Remove item">
+              <i class="bi bi-trash3"></i>
+            </button>
+          </form>
+
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Clear cart -->
+      <div class="mt-4 d-flex gap-3">
+        <a href="{% url 'product-list' %}" class="btn btn-outline-brand btn-sm">
+          <i class="bi bi-arrow-left me-1"></i>Continue Shopping
+        </a>
+        <form method="post" action="{% url 'cart-clear' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger-soft btn-sm"
+                  data-confirm="Clear your entire cart?">
+            <i class="bi bi-trash3 me-1"></i>Clear Cart
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Order Summary ──────────────────────────────────────────── -->
+    <div class="col-lg-4">
+      <div class="summary-box sticky-summary">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:1rem">Order Summary</div>
+
+        {% for item in cart.items %}
+        <div class="summary-row">
+          <span style="color:var(--text-muted);font-size:.85rem">{{ item.name|default:"Item"|truncatechars:25 }}</span>
+          <span style="font-size:.85rem">₹{{ item.subtotal }}</span>
+        </div>
+        {% endfor %}
+
+        <div class="summary-row" style="border-top:1px solid var(--border-subtle);margin-top:.5rem;padding-top:.75rem">
+          <span style="color:var(--text-muted)">Subtotal</span>
+          <span style="font-weight:700">₹{{ cart.subtotal }}</span>
+        </div>
+        <div class="summary-row">
+          <span style="color:var(--text-muted)">Shipping</span>
+          <span style="color:#4ade80;font-weight:600">Free</span>
+        </div>
+        <div class="summary-row" style="margin-top:.5rem">
+          <span class="summary-total">Total</span>
+          <span class="summary-total">₹{{ cart.subtotal }}</span>
+        </div>
+
+        <a href="{% url 'checkout' %}" class="btn btn-brand w-100 mt-4" style="padding:.85rem">
+          <i class="bi bi-lock-fill me-2"></i>Secure Checkout
+        </a>
+        <div class="text-center mt-2" style="font-size:.75rem;color:var(--text-muted)">
+          <i class="bi bi-shield-check me-1"></i>256-bit SSL encrypted checkout
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  {% else %}
+  <!-- Empty cart -->
+  <div class="empty-state">
+    <div class="empty-state-icon">🛒</div>
+    <h3>Your cart is empty</h3>
+    <p>Discover products you'll love and add them to your cart.</p>
+    <a href="{% url 'product-list' %}" class="btn btn-brand mt-2">
+      <i class="bi bi-grid me-2"></i>Start Shopping
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

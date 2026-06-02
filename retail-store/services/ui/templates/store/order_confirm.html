@@ -1,0 +1,90 @@
+{% extends "store/base.html" %}
+{% load static store_tags %}
+
+{% block content %}
+<div class="container py-5" style="max-width:700px">
+
+  <!-- Steps complete -->
+  <div class="d-flex align-items-center gap-3 mb-5">
+    {% for label in "Cart,Shipping,Confirmation"|split:"," %}
+    <div class="d-flex align-items-center gap-2">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--brand-primary);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700">✓</div>
+      <span style="font-size:.85rem;font-weight:600;color:var(--brand-primary)">{{ label }}</span>
+    </div>
+    {% if not forloop.last %}<div style="flex:1;height:1px;background:var(--brand-primary)"></div>{% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- Success header -->
+  <div class="text-center mb-5">
+    <div class="confirm-icon">🎉</div>
+    <h1 style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:700;margin-bottom:.5rem">
+      Order Placed!
+    </h1>
+    <p style="color:var(--text-muted)">
+      Thank you for your order. We'll get it to you as fast as possible!
+    </p>
+    <div class="status-badge status-PENDING d-inline-flex mt-2">
+      <i class="bi bi-clock me-1"></i>Status: PENDING
+    </div>
+  </div>
+
+  <!-- Order details card -->
+  <div class="glass-panel p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Order ID</div>
+        <div style="font-size:1.3rem;font-weight:800;color:var(--brand-primary)">#{{ order.id }}</div>
+      </div>
+      <div class="text-end">
+        <div style="font-size:.78rem;color:var(--text-muted)">Placed on</div>
+        <div style="font-size:.9rem;font-weight:600">{{ order.created_at|date:"d M Y, h:i A" }}</div>
+      </div>
+    </div>
+
+    <!-- Items -->
+    {% for item in order.items %}
+    <div class="summary-row">
+      <div>
+        <div style="font-size:.9rem;font-weight:600">{{ item.product_name|default:"Product" }}</div>
+        <div style="font-size:.75rem;color:var(--text-muted)">
+          SKU: {{ item.product_sku|default:"–" }} &nbsp;·&nbsp; Qty: {{ item.quantity }}
+        </div>
+      </div>
+      <span style="font-weight:700;flex-shrink:0;margin-left:.75rem">₹{{ item.subtotal }}</span>
+    </div>
+    {% endfor %}
+
+    <div class="summary-row" style="margin-top:.5rem">
+      <span class="summary-total">Total Paid</span>
+      <span class="summary-total">₹{{ order.total_price }}</span>
+    </div>
+  </div>
+
+  <!-- Shipping address -->
+  {% if order.shipping_name %}
+  <div class="glass-panel p-4 mb-4">
+    <div style="font-weight:700;font-size:.9rem;margin-bottom:.75rem">
+      <i class="bi bi-geo-alt-fill me-2" style="color:var(--brand-primary)"></i>Delivery Address
+    </div>
+    <div style="font-size:.9rem;line-height:1.8;color:var(--text-muted)">
+      {{ order.shipping_name }}<br>
+      {{ order.shipping_address_line1 }}{% if order.shipping_address_line2 %}, {{ order.shipping_address_line2 }}{% endif %}<br>
+      {{ order.shipping_city }}{% if order.shipping_pincode %} – {{ order.shipping_pincode }}{% endif %}<br>
+      {{ order.shipping_country }}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- CTAs -->
+  <div class="d-flex gap-3 flex-wrap">
+    <a href="{% url 'order-detail' order.id %}" class="btn btn-brand flex-grow-1" style="padding:.8rem">
+      <i class="bi bi-bag me-2"></i>Track Order
+    </a>
+    <a href="{% url 'product-list' %}" class="btn btn-outline-brand flex-grow-1" style="padding:.8rem">
+      <i class="bi bi-grid me-2"></i>Continue Shopping
+    </a>
+  </div>
+
+</div>
+{% endblock %}

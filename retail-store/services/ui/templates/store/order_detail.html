@@ -1,0 +1,164 @@
+{% extends "store/base.html" %}
+{% load static store_tags %}
+
+{% block content %}
+<div class="container py-5" style="max-width:860px">
+
+  <!-- Back + header -->
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{% url 'order-list' %}" style="color:var(--text-muted)"><i class="bi bi-arrow-left fs-5"></i></a>
+    <div class="flex-grow-1">
+      <div class="section-label">Order Detail</div>
+      <h1 style="font-size:1.8rem;font-weight:700;margin:0">Order #{{ order.id }}</h1>
+    </div>
+    <span class="status-badge status-{{ order.status }} fs-6">
+      {% if order.status == "PENDING" %}<i class="bi bi-clock me-1"></i>
+      {% elif order.status == "CONFIRMED" %}<i class="bi bi-check-circle me-1"></i>
+      {% elif order.status == "SHIPPED" %}<i class="bi bi-truck me-1"></i>
+      {% elif order.status == "DELIVERED" %}<i class="bi bi-bag-check me-1"></i>
+      {% elif order.status == "CANCELLED" %}<i class="bi bi-x-circle me-1"></i>
+      {% endif %}
+      {{ order.status }}
+    </span>
+  </div>
+
+  <!-- Timeline / progress bar -->
+  {% if order.status != "CANCELLED" %}
+  <div class="glass-panel p-4 mb-4">
+    {% with steps="PENDING,CONFIRMED,SHIPPED,DELIVERED" %}
+    <div class="d-flex align-items-center">
+      {% for step in steps|split:"," %}
+      <div class="text-center flex-grow-1">
+        <div class="mx-auto mb-1" style="
+             width:32px;height:32px;border-radius:50%;
+             background: {% if order.status == step or order.status == 'DELIVERED' and step != 'DELIVERED' or order.status == 'SHIPPED' and step in 'PENDING,CONFIRMED,SHIPPED' or order.status == 'CONFIRMED' and step in 'PENDING,CONFIRMED' or order.status == 'PENDING' and step == 'PENDING' %}var(--brand-primary){% else %}var(--glass-bg){% endif %};
+             border: 2px solid {% if order.status == step %}var(--brand-primary){% else %}var(--glass-border){% endif %};
+             display:flex;align-items:center;justify-content:center;
+             font-size:.8rem;font-weight:700;margin:0 auto">
+          {% if order.status == 'DELIVERED' %}<i class="bi bi-check2" style="color:#fff"></i>
+          {% elif step == 'PENDING' and order.status in 'PENDING,CONFIRMED,SHIPPED,DELIVERED' %}✓
+          {% elif step == 'CONFIRMED' and order.status in 'CONFIRMED,SHIPPED,DELIVERED' %}✓
+          {% elif step == 'SHIPPED' and order.status in 'SHIPPED,DELIVERED' %}✓
+          {% elif step == 'DELIVERED' and order.status == 'DELIVERED' %}✓
+          {% else %}·{% endif %}
+        </div>
+        <div style="font-size:.72rem;font-weight:600;color:{% if order.status == step %}var(--brand-primary){% else %}var(--text-muted){% endif %}">
+          {{ step }}
+        </div>
+      </div>
+      {% if not forloop.last %}
+      <div style="flex:1;height:2px;background:{% if order.status in 'CONFIRMED,SHIPPED,DELIVERED' and step == 'PENDING' or order.status in 'SHIPPED,DELIVERED' and step == 'CONFIRMED' or order.status == 'DELIVERED' and step == 'SHIPPED' %}var(--brand-primary){% else %}var(--glass-border){% endif %};margin-bottom:1.5rem"></div>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% endwith %}
+  </div>
+  {% else %}
+  <div class="glass-panel p-4 mb-4 text-center">
+    <i class="bi bi-x-circle-fill" style="font-size:2rem;color:var(--brand-secondary)"></i>
+    <div style="font-weight:700;margin-top:.5rem">This order was cancelled</div>
+    {% if order.cancellation_reason %}
+    <div style="color:var(--text-muted);font-size:.85rem;margin-top:.25rem">
+      Reason: {{ order.cancellation_reason }}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+
+    <!-- ── Line items ─────────────────────────────────────────────── -->
+    <div class="col-lg-7">
+      <div class="summary-box mb-4">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:1rem">Items Ordered</div>
+        {% for item in order.items %}
+        <div class="summary-row">
+          <div>
+            <div style="font-size:.92rem;font-weight:600">{{ item.product_name|default:"Product" }}</div>
+            <div style="font-size:.75rem;color:var(--text-muted)">
+              SKU: {{ item.product_sku|default:"–" }} &nbsp;·&nbsp; ₹{{ item.unit_price }} × {{ item.quantity }}
+            </div>
+          </div>
+          <span style="font-weight:700;flex-shrink:0;margin-left:.75rem">₹{{ item.subtotal }}</span>
+        </div>
+        {% endfor %}
+        <div class="summary-row" style="margin-top:.5rem">
+          <span class="summary-total">Order Total</span>
+          <span class="summary-total">₹{{ order.total_price }}</span>
+        </div>
+      </div>
+
+      <!-- Cancel button -->
+      {% if order.is_cancellable %}
+      <div class="glass-panel p-3">
+        <div style="font-weight:600;font-size:.9rem;margin-bottom:.75rem">Cancel Order</div>
+        <form method="post" action="{% url 'order-cancel' order.id %}">
+          {% csrf_token %}
+          <div class="mb-2">
+            <input type="text" name="reason" class="form-control form-control-custom"
+                   placeholder="Reason for cancellation (optional)">
+          </div>
+          <button type="submit" class="btn btn-danger-soft"
+                  data-confirm="Are you sure you want to cancel order #{{ order.id }}?">
+            <i class="bi bi-x-circle me-1"></i>Cancel This Order
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Sidebar ─────────────────────────────────────────────────── -->
+    <div class="col-lg-5">
+
+      <!-- Order info -->
+      <div class="summary-box mb-3">
+        <div style="font-weight:700;font-size:.9rem;margin-bottom:.75rem">Order Info</div>
+        <div class="summary-row">
+          <span style="color:var(--text-muted)">Order ID</span>
+          <span style="font-weight:700;color:var(--brand-primary)">#{{ order.id }}</span>
+        </div>
+        <div class="summary-row">
+          <span style="color:var(--text-muted)">Placed</span>
+          <span>{{ order.created_at|date:"d M Y, h:i A" }}</span>
+        </div>
+        <div class="summary-row">
+          <span style="color:var(--text-muted)">Updated</span>
+          <span>{{ order.updated_at|date:"d M Y" }}</span>
+        </div>
+        <div class="summary-row">
+          <span style="color:var(--text-muted)">Currency</span>
+          <span>{{ order.currency }}</span>
+        </div>
+      </div>
+
+      <!-- Shipping address -->
+      {% if order.shipping_name %}
+      <div class="summary-box">
+        <div style="font-weight:700;font-size:.9rem;margin-bottom:.75rem">
+          <i class="bi bi-geo-alt me-2" style="color:var(--brand-primary)"></i>Delivery Address
+        </div>
+        <div style="font-size:.88rem;line-height:1.9;color:var(--text-muted)">
+          <span style="color:var(--text-primary);font-weight:600">{{ order.shipping_name }}</span><br>
+          {{ order.shipping_address_line1 }}<br>
+          {% if order.shipping_address_line2 %}{{ order.shipping_address_line2 }}<br>{% endif %}
+          {{ order.shipping_city }}{% if order.shipping_pincode %} – {{ order.shipping_pincode }}{% endif %}<br>
+          {{ order.shipping_country }}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <!-- Notes -->
+  {% if order.notes %}
+  <div class="glass-panel p-3 mt-4">
+    <div style="font-size:.78rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem">
+      Order Notes
+    </div>
+    <div style="font-size:.9rem;color:var(--text-muted)">{{ order.notes }}</div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

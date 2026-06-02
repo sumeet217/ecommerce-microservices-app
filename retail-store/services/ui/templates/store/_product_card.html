@@ -1,0 +1,62 @@
+{% load static %}
+<div class="product-card">
+  <a href="{% url 'product-detail' product.id %}" class="text-decoration-none">
+    <div class="product-card-img-wrap">
+      {% if product.primary_image_url %}
+        <img src="{{ product.primary_image_url }}" alt="{{ product.name }}" loading="lazy">
+      {% else %}
+        <div class="product-card-placeholder">📦</div>
+      {% endif %}
+
+      {% if product.is_featured %}<span class="badge-featured">⭐ Featured</span>{% endif %}
+      {% if not product.is_in_stock %}<span class="badge-out-of-stock">Out of Stock</span>{% endif %}
+
+      {% if product.discount_percent and product.discount_percent != "0.00" %}
+      <span style="position:absolute;bottom:10px;left:10px" class="product-card-discount">
+        {{ product.discount_percent|floatformat:0 }}% OFF
+      </span>
+      {% endif %}
+    </div>
+  </a>
+
+  <div class="product-card-body">
+    <div class="product-card-brand">{{ product.brand|default:"–" }}</div>
+    <a href="{% url 'product-detail' product.id %}" class="text-decoration-none">
+      <div class="product-card-title">{{ product.name }}</div>
+    </a>
+
+    <!-- Rating -->
+    {% if product.rating_count %}
+    <div class="d-flex align-items-center gap-1 mb-2">
+      <span class="rating-star">★</span>
+      <span class="rating-value" style="font-size:.8rem">{{ product.rating_avg }}</span>
+      <span class="rating-count">({{ product.rating_count }})</span>
+    </div>
+    {% endif %}
+
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <span class="product-card-price">₹{{ product.selling_price }}</span>
+      {% if product.discount_percent and product.discount_percent != "0.00" %}
+      <span class="product-card-price-original">₹{{ product.price }}</span>
+      {% endif %}
+    </div>
+
+    <!-- Add to Cart -->
+    {% if product.is_in_stock %}
+    <form method="post" action="{% url 'cart-add' %}">
+      {% csrf_token %}
+      <input type="hidden" name="product_id" value="{{ product.id }}">
+      <input type="hidden" name="quantity" value="1">
+      <input type="hidden" name="next" value="product-list">
+      <button type="submit" class="btn btn-brand w-100 btn-sm">
+        <i class="bi bi-cart-plus me-1"></i>Add to Cart
+      </button>
+    </form>
+    {% else %}
+    <button class="btn w-100 btn-sm" disabled
+            style="background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);color:var(--text-muted)">
+      Out of Stock
+    </button>
+    {% endif %}
+  </div>
+</div>

@@ -1,0 +1,232 @@
+
+# ------------------------------------------------------------
+# Python
+# ------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+
+# ------------------------------------------------------------
+# Virtual environments
+# ------------------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+.env/
+virtualenv/
+
+
+# ------------------------------------------------------------
+# Environment and secrets
+# ------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
+
+# Docker environment files (keep .env.example only)
+.env.local
+.env.production
+.env.staging
+.env.development
+
+
+# ------------------------------------------------------------
+# Django
+# ------------------------------------------------------------
+*.sqlite3
+db.sqlite3-journal
+staticfiles/
+mediafiles/
+media/
+local_settings.py
+
+# Database data directories
+postgres_data/
+catalog_db_data/
+orders_db_data/
+redis_data/
+
+
+# ------------------------------------------------------------
+# pytest / coverage
+# ------------------------------------------------------------
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.coveragerc
+nosetests.xml
+test-results/
+
+
+# ------------------------------------------------------------
+# mypy / type checkers
+# ------------------------------------------------------------
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+
+# ------------------------------------------------------------
+# Node.js / npm / yarn / pnpm
+# ------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.npm
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+
+# ------------------------------------------------------------
+# Next.js
+# ------------------------------------------------------------
+.next/
+out/
+
+
+# ------------------------------------------------------------
+# TypeScript
+# ------------------------------------------------------------
+*.tsbuildinfo
+next-env.d.ts
+
+
+# ------------------------------------------------------------
+# Build outputs
+# ------------------------------------------------------------
+dist/
+build/
+*.min.js
+*.min.css
+
+
+# ------------------------------------------------------------
+# Docker
+# ------------------------------------------------------------
+# Do not ignore Dockerfiles — they belong in the repo.
+# Ignore any local override files.
+docker-compose.override.yml
+docker-compose.local.yml
+
+
+# ------------------------------------------------------------
+# Logs
+# ------------------------------------------------------------
+*.log
+logs/
+log/
+gunicorn-error.log
+gunicorn-access.log
+nginx-error.log
+nginx-access.log
+supervisord.log
+
+
+# ------------------------------------------------------------
+# macOS
+# ------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+
+# ------------------------------------------------------------
+# Windows
+# ------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+
+# ------------------------------------------------------------
+# Linux
+# ------------------------------------------------------------
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+
+# ------------------------------------------------------------
+# Editors — VS Code
+# ------------------------------------------------------------
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+
+# ------------------------------------------------------------
+# Editors — JetBrains (PyCharm, WebStorm, etc.)
+# ------------------------------------------------------------
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+
+# ------------------------------------------------------------
+# Editors — Vim / Emacs / other
+# ------------------------------------------------------------
+*.swp
+*.swo
+*.swn
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+.elc
+auto-save-list
+tramp
+.\#*
+
+
+# ------------------------------------------------------------
+# Temporary and misc files
+# ------------------------------------------------------------
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+.cache/
+tmp/
+temp/

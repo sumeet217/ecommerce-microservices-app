@@ -1,0 +1,14 @@
+# ─── Core Framework ───────────────────────────────────────────────────────────
+Django==5.0.6
+
+# ─── HTTP Client (to call backend services) ───────────────────────────────────
+requests==2.32.3
+
+# ─── Environment ──────────────────────────────────────────────────────────────
+python-decouple==3.8
+
+# ─── Production WSGI ──────────────────────────────────────────────────────────
+gunicorn==22.0.0
+
+# ─── Whitenoise (static files in dev; Nginx serves in prod) ───────────────────
+whitenoise==6.7.0

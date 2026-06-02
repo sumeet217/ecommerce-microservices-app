@@ -1,0 +1,158 @@
+{% extends "store/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-custom mb-4">
+    <a href="{% url 'home' %}">Home</a>
+    <span class="sep">/</span>
+    <a href="{% url 'product-list' %}">Products</a>
+    {% if product.category %}
+    <span class="sep">/</span>
+    <a href="{% url 'product-list' %}?category={{ product.category.id }}">{{ product.category.name }}</a>
+    {% endif %}
+    <span class="sep">/</span>
+    <span class="current">{{ product.name|truncatechars:40 }}</span>
+  </div>
+
+  <div class="row g-5">
+
+    <!-- ── Image column ───────────────────────────────────────────── -->
+    <div class="col-lg-5">
+      {% if product.primary_image_url %}
+        <img id="main-product-img" src="{{ product.primary_image_url }}"
+             alt="{{ product.name }}" class="product-detail-img mb-3">
+      {% else %}
+        <div class="product-detail-placeholder mb-3">📦</div>
+      {% endif %}
+
+      <!-- Thumbnail strip -->
+      {% if product.images %}
+      <div class="d-flex gap-2 flex-wrap">
+        {% for img in product.images %}
+        <img src="{{ img.image }}" alt="{{ img.alt_text }}" class="thumb-img"
+             style="width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer;
+                    border:2px solid {% if img.is_primary %}var(--brand-primary){% else %}var(--glass-border){% endif %};
+                    transition:border-color .2s">
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Detail column ──────────────────────────────────────────── -->
+    <div class="col-lg-7">
+
+      <!-- Category + Brand -->
+      <div class="d-flex gap-2 mb-2">
+        {% if product.category %}
+        <span class="tag-chip">{{ product.category.name }}</span>
+        {% endif %}
+        {% if product.brand %}
+        <span class="tag-chip" style="background:rgba(255,107,107,0.1);color:var(--brand-secondary);border-color:rgba(255,107,107,0.2)">
+          {{ product.brand }}
+        </span>
+        {% endif %}
+      </div>
+
+      <h1 style="font-family:'Inter',sans-serif;font-size:clamp(1.4rem,3vw,2rem);font-weight:700;line-height:1.25;margin-bottom:.75rem">
+        {{ product.name }}
+      </h1>
+
+      <!-- Rating -->
+      {% if product.rating_count %}
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <div>{% for i in "12345" %}<span class="rating-star">★</span>{% endfor %}</div>
+        <span class="rating-value">{{ product.rating_avg }}</span>
+        <span class="rating-count">{{ product.rating_count }} review{{ product.rating_count|pluralize }}</span>
+      </div>
+      {% endif %}
+
+      <!-- Pricing -->
+      <div class="d-flex align-items-end gap-3 mb-4">
+        <span class="product-price-large">₹{{ product.selling_price }}</span>
+        {% if product.discount_percent and product.discount_percent != "0.00" %}
+        <span style="font-size:1.1rem;color:var(--text-muted);text-decoration:line-through">₹{{ product.price }}</span>
+        <span class="product-card-discount" style="font-size:.85rem">{{ product.discount_percent|floatformat:0 }}% OFF</span>
+        {% endif %}
+      </div>
+
+      <!-- Stock status -->
+      <div class="d-flex align-items-center gap-2 mb-4">
+        {% if product.is_in_stock %}
+          <span style="color:#4ade80"><i class="bi bi-check-circle-fill me-1"></i>In Stock</span>
+          {% if product.is_low_stock %}
+          <span class="status-badge status-PENDING">Only {{ product.stock_quantity }} left</span>
+          {% endif %}
+        {% else %}
+          <span style="color:var(--brand-secondary)"><i class="bi bi-x-circle-fill me-1"></i>Out of Stock</span>
+        {% endif %}
+      </div>
+
+      <!-- Description -->
+      {% if product.description %}
+      <p style="color:var(--text-muted);font-size:.92rem;line-height:1.7;margin-bottom:1.5rem">
+        {{ product.description|linebreaksbr }}
+      </p>
+      {% endif %}
+
+      <!-- Add to Cart -->
+      {% if product.is_in_stock %}
+      <form method="post" action="{% url 'cart-add' %}">
+        {% csrf_token %}
+        <input type="hidden" name="product_id" value="{{ product.id }}">
+        <input type="hidden" name="next" value="cart">
+        <div class="d-flex gap-3 align-items-center mb-3">
+          <div class="qty-stepper d-flex align-items-center gap-1"
+               style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:8px;padding:.25rem">
+            <button type="button" class="btn btn-sm" data-action="dec"
+                    style="color:var(--text-muted);background:none;border:none;padding:.25rem .6rem">−</button>
+            <input type="number" name="quantity" class="qty-input" value="1" min="1" max="99">
+            <button type="button" class="btn btn-sm" data-action="inc"
+                    style="color:var(--text-muted);background:none;border:none;padding:.25rem .6rem">+</button>
+          </div>
+          <button type="submit" class="btn btn-brand flex-grow-1" style="padding:.75rem">
+            <i class="bi bi-cart-plus me-2"></i>Add to Cart
+          </button>
+        </div>
+      </form>
+      <a href="{% url 'cart' %}" class="btn btn-outline-brand w-100 mb-4">
+        <i class="bi bi-bag-check me-2"></i>Go to Cart
+      </a>
+      {% else %}
+      <button class="btn w-100 mb-4" disabled
+              style="background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);color:var(--text-muted)">
+        Out of Stock
+      </button>
+      {% endif %}
+
+      <!-- Tags -->
+      {% if product.tag_list %}
+      <div class="d-flex gap-2 flex-wrap mb-4">
+        {% for tag in product.tag_list %}
+        <a href="{% url 'product-list' %}?q={{ tag }}" class="tag-chip text-decoration-none">{{ tag }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Attributes -->
+      {% if product.attributes %}
+      <div class="glass-panel p-3 mt-2">
+        <div style="font-size:.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">
+          Specifications
+        </div>
+        {% for attr in product.attributes %}
+        <div class="summary-row">
+          <span style="color:var(--text-muted);font-size:.88rem">{{ attr.name }}</span>
+          <span style="font-size:.88rem;font-weight:600">{{ attr.value }}{% if attr.unit %} {{ attr.unit }}{% endif %}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

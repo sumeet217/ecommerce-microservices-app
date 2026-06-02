@@ -1,0 +1,61 @@
+# ─── UI Service .dockerignore ──────────────────────────────────────────────────
+# Keep the Docker build context lean — exclude anything not needed at runtime.
+
+# Python artefacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.env/
+
+# Django dev artefacts
+db.sqlite3
+*.sqlite3
+staticfiles/   # collected at build time — recreated by collectstatic
+
+# Secrets / env files
+.env
+.env.*
+!.env.example   # keep the example so docs are included
+
+# Tests / CI
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+*.coveragerc
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker meta
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Docs / CI
+*.md
+.github/

@@ -1,0 +1,117 @@
+{% extends "store/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <div class="section-label">Catalogue</div>
+      <h1 class="section-title mb-0" style="font-size:1.8rem">
+        {% if search %}Results for "{{ search }}"{% else %}All Products{% endif %}
+      </h1>
+      {% if count %}<div style="color:var(--text-muted);font-size:0.85rem">{{ count }} product{{ count|pluralize }} found</div>{% endif %}
+    </div>
+    <a href="{% url 'home' %}" class="btn btn-sm" style="border:1px solid var(--glass-border);color:var(--text-muted)">
+      <i class="bi bi-house me-1"></i>Home
+    </a>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="search-bar mb-5">
+    <form method="get" action="{% url 'product-list' %}">
+      <div class="row g-3 align-items-end">
+
+        <div class="col-md-5">
+          <label class="form-label" style="font-size:.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Search</label>
+          <div class="input-group">
+            <span class="input-group-text" style="background:rgba(255,255,255,0.04);border-color:var(--glass-border);color:var(--text-muted)">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="search" name="q" class="form-control" placeholder="Search products, brands…"
+                   value="{{ search }}"
+                   style="background:rgba(255,255,255,0.06);border-color:var(--glass-border);color:var(--text-primary)">
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label" style="font-size:.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Category</label>
+          <select name="category" class="form-select"
+                  style="background:rgba(255,255,255,0.06);border-color:var(--glass-border);color:var(--text-primary)">
+            <option value="">All Categories</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if selected_category == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label" style="font-size:.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Sort By</label>
+          <select name="ordering" class="form-select"
+                  style="background:rgba(255,255,255,0.06);border-color:var(--glass-border);color:var(--text-primary)">
+            <option value="-created_at" {% if selected_ordering == "-created_at" %}selected{% endif %}>Newest</option>
+            <option value="price"       {% if selected_ordering == "price"       %}selected{% endif %}>Price: Low→High</option>
+            <option value="-price"      {% if selected_ordering == "-price"      %}selected{% endif %}>Price: High→Low</option>
+            <option value="-rating_avg" {% if selected_ordering == "-rating_avg" %}selected{% endif %}>Top Rated</option>
+            <option value="-discount_percent" {% if selected_ordering == "-discount_percent" %}selected{% endif %}>Best Deals</option>
+          </select>
+        </div>
+
+        <div class="col-md-2 d-flex gap-2">
+          <button type="submit" class="btn btn-brand w-100">
+            <i class="bi bi-funnel me-1"></i>Filter
+          </button>
+          {% if search or selected_category %}
+          <a href="{% url 'product-list' %}" class="btn btn-sm" title="Clear filters"
+             style="border:1px solid var(--glass-border);color:var(--text-muted);padding:.6rem">
+            <i class="bi bi-x-lg"></i>
+          </a>
+          {% endif %}
+        </div>
+
+      </div>
+    </form>
+  </div>
+
+  <!-- Product Grid -->
+  {% if products %}
+  <div class="row g-4">
+    {% for product in products %}
+    <div class="col-6 col-md-4 col-lg-3">
+      {% include "store/_product_card.html" with product=product %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if has_prev or has_next %}
+  <div class="d-flex justify-content-center mt-5">
+    <div class="pagination-custom">
+      {% if has_prev %}
+      <a href="?q={{ search }}&category={{ selected_category|default:'' }}&ordering={{ selected_ordering }}&page={{ page|add:'-1' }}">
+        <i class="bi bi-chevron-left me-1"></i>Prev
+      </a>
+      {% endif %}
+      <span class="active">{{ page }}</span>
+      {% if has_next %}
+      <a href="?q={{ search }}&category={{ selected_category|default:'' }}&ordering={{ selected_ordering }}&page={{ page|add:'1' }}">
+        Next<i class="bi bi-chevron-right ms-1"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <!-- Empty state -->
+  <div class="empty-state">
+    <div class="empty-state-icon">🔍</div>
+    <h3>No products found</h3>
+    <p>Try adjusting your search or filters.</p>
+    <a href="{% url 'product-list' %}" class="btn btn-brand mt-2">Clear Filters</a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

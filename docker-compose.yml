@@ -1,0 +1,386 @@
+# =============================================================================
+#  RetailStore — docker-compose.yml
+#
+#  Services
+#  --------
+#  catalog-service  :8001  Django REST + PostgreSQL (catalog-db)
+#  cart-service     :8002  Django REST + Redis
+#  orders-service   :8003  Django REST + PostgreSQL (orders-db)
+#  ui-service       :8080  Django Templates + Nginx (internal :80)
+#  nginx            :80    Reverse proxy — routes all public traffic
+#
+#  Infrastructure
+#  --------------
+#  catalog-db       PostgreSQL 16 for the Catalog Service
+#  orders-db        PostgreSQL 16 for the Orders Service
+#  redis            Redis 7 for the Cart Service
+#
+#  Usage
+#  -----
+#  docker compose up --build          # first run (builds all images)
+#  docker compose up -d               # subsequent runs in the background
+#  docker compose down -v             # stop and remove volumes
+#  docker compose logs -f <service>   # tail logs for one service
+# =============================================================================
+
+services:
+
+  # ===========================================================================
+  # Infrastructure: PostgreSQL for Catalog
+  # ===========================================================================
+  catalog-db:
+    image: postgres:16-alpine
+    container_name: catalog-db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB:       ${CATALOG_POSTGRES_DB}
+      POSTGRES_USER:     ${CATALOG_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${CATALOG_POSTGRES_PASSWORD}
+    volumes:
+      - catalog_db_data:/var/lib/postgresql/data
+    networks:
+      - retail-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CATALOG_POSTGRES_USER} -d ${CATALOG_POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ===========================================================================
+  # Infrastructure: PostgreSQL for Orders
+  # ===========================================================================
+  orders-db:
+    image: postgres:16-alpine
+    container_name: orders-db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB:       ${ORDERS_POSTGRES_DB}
+      POSTGRES_USER:     ${ORDERS_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${ORDERS_POSTGRES_PASSWORD}
+    volumes:
+      - orders_db_data:/var/lib/postgresql/data
+    networks:
+      - retail-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ORDERS_POSTGRES_USER} -d ${ORDERS_POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ===========================================================================
+  # Infrastructure: Redis for Cart
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: >
+      redis-server
+      --maxmemory ${REDIS_MAX_MEMORY}
+      --maxmemory-policy ${REDIS_MAX_MEMORY_POLICY}
+      --save ${REDIS_SAVE_INTERVAL}
+      --loglevel ${REDIS_LOG_LEVEL}
+    volumes:
+      - redis_data:/data
+    networks:
+      - retail-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ===========================================================================
+  # Catalog Service  (Django REST + PostgreSQL)
+  # ===========================================================================
+  catalog-service:
+    build:
+      context: ./retail-store/services/catalog
+      dockerfile: Dockerfile
+    container_name: catalog-service
+    restart: unless-stopped
+    depends_on:
+      catalog-db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Django core
+      DJANGO_SECRET_KEY:    ${CATALOG_DJANGO_SECRET_KEY}
+      DJANGO_DEBUG:         ${CATALOG_DJANGO_DEBUG}
+      DJANGO_ALLOWED_HOSTS: ${CATALOG_DJANGO_ALLOWED_HOSTS}
+      DJANGO_SETTINGS_MODULE: ${CATALOG_DJANGO_SETTINGS_MODULE}
+
+      # Database — individual vars (entrypoint reads these directly)
+      DB_HOST:     ${CATALOG_DB_HOST}
+      DB_PORT:     ${CATALOG_DB_PORT}
+      DB_NAME:     ${CATALOG_DB_NAME}
+      DB_USER:     ${CATALOG_DB_USER}
+      DB_PASSWORD: ${CATALOG_DB_PASSWORD}
+
+      # Optionally supply the full DSN (takes precedence in settings.py)
+      DATABASE_URL: ${CATALOG_DATABASE_URL}
+
+      # Gunicorn
+      PORT:              ${CATALOG_PORT}
+      GUNICORN_WORKERS:  ${CATALOG_GUNICORN_WORKERS}
+      GUNICORN_TIMEOUT:  ${CATALOG_GUNICORN_TIMEOUT}
+
+      # API
+      PAGE_SIZE: ${CATALOG_PAGE_SIZE}
+
+      # CORS — allow the UI service and Nginx to make requests
+      CORS_ALLOWED_ORIGINS: ${CATALOG_CORS_ALLOWED_ORIGINS}
+      CORS_ALLOW_ALL_ORIGINS: ${CATALOG_CORS_ALLOW_ALL_ORIGINS}
+
+      # Dev helpers (set to true to create a superuser + seed demo data on first boot)
+      CREATE_SUPERUSER:         ${CATALOG_CREATE_SUPERUSER}
+      DJANGO_SUPERUSER_USERNAME: ${CATALOG_DJANGO_SUPERUSER_USERNAME}
+      DJANGO_SUPERUSER_EMAIL:    ${CATALOG_DJANGO_SUPERUSER_EMAIL}
+      DJANGO_SUPERUSER_PASSWORD: ${CATALOG_DJANGO_SUPERUSER_PASSWORD}
+      SEED_DEMO_DATA:           ${CATALOG_SEED_DEMO_DATA}
+
+      LOG_LEVEL: ${CATALOG_LOG_LEVEL}
+    networks:
+      - retail-net
+    expose:
+      - "8001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  # ===========================================================================
+  # Cart Service  (Django REST + Redis)
+  # ===========================================================================
+  cart-service:
+    build:
+      context: ./retail-store/services/cart
+      dockerfile: Dockerfile
+    container_name: cart-service
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      catalog-service:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Django core
+      DJANGO_SECRET_KEY:    ${CART_DJANGO_SECRET_KEY}
+      DJANGO_DEBUG:         ${CART_DJANGO_DEBUG}
+      DJANGO_ALLOWED_HOSTS: ${CART_DJANGO_ALLOWED_HOSTS}
+      DJANGO_SETTINGS_MODULE: ${CART_DJANGO_SETTINGS_MODULE}
+
+      # Redis
+      REDIS_URL: ${CART_REDIS_URL}
+
+      # Cart business rules
+      CART_TTL_SECONDS:           ${CART_TTL_SECONDS}
+      CART_MAX_ITEMS:             ${CART_MAX_ITEMS}
+      CART_MAX_QUANTITY_PER_ITEM: ${CART_MAX_QUANTITY_PER_ITEM}
+
+      # Downstream — catalog service is on port 8001 inside the network
+      CATALOG_SERVICE_URL:     ${CART_CATALOG_SERVICE_URL}
+      CATALOG_SERVICE_TIMEOUT: ${CART_CATALOG_SERVICE_TIMEOUT}
+
+      # Gunicorn
+      PORT:             ${CART_PORT}
+      GUNICORN_WORKERS: ${CART_GUNICORN_WORKERS}
+      GUNICORN_TIMEOUT: ${CART_GUNICORN_TIMEOUT}
+
+      # CORS
+      CORS_ALLOWED_ORIGINS: ${CART_CORS_ALLOWED_ORIGINS}
+      CORS_ALLOW_ALL_ORIGINS: ${CART_CORS_ALLOW_ALL_ORIGINS}
+
+      LOG_LEVEL: ${CART_LOG_LEVEL}
+    networks:
+      - retail-net
+    expose:
+      - "8002"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8002/health/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 35s
+
+  # ===========================================================================
+  # Orders Service  (Django REST + PostgreSQL)
+  # ===========================================================================
+  orders-service:
+    build:
+      context: ./retail-store/services/orders
+      dockerfile: Dockerfile
+    container_name: orders-service
+    restart: unless-stopped
+    depends_on:
+      orders-db:
+        condition: service_healthy
+      cart-service:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Django core
+      DJANGO_SECRET_KEY:    ${ORDERS_DJANGO_SECRET_KEY}
+      DJANGO_DEBUG:         ${ORDERS_DJANGO_DEBUG}
+      DJANGO_ALLOWED_HOSTS: ${ORDERS_DJANGO_ALLOWED_HOSTS}
+      DJANGO_SETTINGS_MODULE: ${ORDERS_DJANGO_SETTINGS_MODULE}
+
+      # Database
+      DB_HOST:     ${ORDERS_DB_HOST}
+      DB_PORT:     ${ORDERS_DB_PORT}
+      DB_NAME:     ${ORDERS_DB_NAME}
+      DB_USER:     ${ORDERS_DB_USER}
+      DB_PASSWORD: ${ORDERS_DB_PASSWORD}
+      DATABASE_URL: ${ORDERS_DATABASE_URL}
+
+      # Downstream — cart service
+      CART_SERVICE_URL:     ${ORDERS_CART_SERVICE_URL}
+      CART_SERVICE_TIMEOUT: ${ORDERS_CART_SERVICE_TIMEOUT}
+
+      # Order business rules
+      CANCELLABLE_STATUSES: ${ORDERS_CANCELLABLE_STATUSES}
+
+      # Gunicorn
+      PORT:             ${ORDERS_PORT}
+      GUNICORN_WORKERS: ${ORDERS_GUNICORN_WORKERS}
+      GUNICORN_TIMEOUT: ${ORDERS_GUNICORN_TIMEOUT}
+
+      # CORS
+      CORS_ALLOWED_ORIGINS: ${ORDERS_CORS_ALLOWED_ORIGINS}
+      CORS_ALLOW_ALL_ORIGINS: ${ORDERS_CORS_ALLOW_ALL_ORIGINS}
+
+      LOG_LEVEL: ${ORDERS_LOG_LEVEL}
+    networks:
+      - retail-net
+    expose:
+      - "8003"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8003/health/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  # ===========================================================================
+  # UI Service  (Django Templates + Nginx + Gunicorn via supervisord)
+  # Internal Nginx runs on :80 inside the container.
+  # Exposed to the host on :8080 so you can access it directly.
+  # The public-facing Nginx reverse proxy below sits in front of it on :80.
+  # ===========================================================================
+  ui-service:
+    build:
+      context: ./retail-store/services/ui
+      dockerfile: Dockerfile
+    container_name: ui-service
+    restart: unless-stopped
+    depends_on:
+      catalog-service:
+        condition: service_healthy
+      cart-service:
+        condition: service_healthy
+      orders-service:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Django core
+      DJANGO_SECRET_KEY:    ${UI_DJANGO_SECRET_KEY}
+      DJANGO_DEBUG:         ${UI_DJANGO_DEBUG}
+      DJANGO_ALLOWED_HOSTS: ${UI_DJANGO_ALLOWED_HOSTS}
+      DJANGO_SETTINGS_MODULE: ${UI_DJANGO_SETTINGS_MODULE}
+
+      # Backend service URLs (all on the internal retail-net network)
+      CATALOG_SERVICE_URL: ${UI_CATALOG_SERVICE_URL}
+      CART_SERVICE_URL:    ${UI_CART_SERVICE_URL}
+      ORDERS_SERVICE_URL:  ${UI_ORDERS_SERVICE_URL}
+      SERVICE_TIMEOUT:     ${UI_SERVICE_TIMEOUT}
+
+      # Pagination
+      PRODUCTS_PER_PAGE: ${UI_PRODUCTS_PER_PAGE}
+
+      # Gunicorn (internal — Nginx proxies to this)
+      GUNICORN_PORT:    ${UI_GUNICORN_PORT}
+      GUNICORN_WORKERS: ${UI_GUNICORN_WORKERS}
+      GUNICORN_TIMEOUT: ${UI_GUNICORN_TIMEOUT}
+
+      LOG_LEVEL: ${UI_LOG_LEVEL}
+    networks:
+      - retail-net
+    ports:
+      # Expose on host :8080 so you can reach the UI directly (bypassing Nginx)
+      - "8080:80"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/nginx-health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 35s
+
+  # ===========================================================================
+  # Nginx — public reverse proxy on port 80
+  #
+  # Routes:
+  #   /api/v1/catalog/  -->  catalog-service:8001
+  #   /api/v1/cart/     -->  cart-service:8002
+  #   /api/v1/orders/   -->  orders-service:8003
+  #   /                 -->  ui-service:80  (Django UI / Nginx)
+  # ===========================================================================
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: nginx
+    restart: unless-stopped
+    depends_on:
+      ui-service:
+        condition: service_healthy
+      catalog-service:
+        condition: service_healthy
+      cart-service:
+        condition: service_healthy
+      orders-service:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - retail-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+# =============================================================================
+# Volumes — persist database and cache data between container restarts
+# =============================================================================
+volumes:
+  catalog_db_data:
+    driver: local
+  orders_db_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# =============================================================================
+# Networks — isolated bridge network; all containers communicate by name
+# =============================================================================
+networks:
+  retail-net:
+    driver: bridge
+    name: retail-net

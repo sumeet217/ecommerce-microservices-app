@@ -1,0 +1,141 @@
+{% extends "store/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5" style="max-width:900px">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center gap-3 mb-5">
+    <a href="{% url 'cart' %}" style="color:var(--text-muted)"><i class="bi bi-arrow-left"></i></a>
+    <div>
+      <div class="section-label">Last Step</div>
+      <h1 style="font-size:1.8rem;font-weight:700;margin:0">Checkout</h1>
+    </div>
+  </div>
+
+  <!-- Steps indicator -->
+  <div class="d-flex align-items-center gap-3 mb-5">
+    <div class="d-flex align-items-center gap-2">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--brand-primary);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700">✓</div>
+      <span style="font-size:.85rem;font-weight:600">Cart</span>
+    </div>
+    <div style="flex:1;height:1px;background:var(--glass-border)"></div>
+    <div class="d-flex align-items-center gap-2">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--brand-primary);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700">2</div>
+      <span style="font-size:.85rem;font-weight:600;color:var(--brand-primary)">Shipping</span>
+    </div>
+    <div style="flex:1;height:1px;background:var(--glass-border)"></div>
+    <div class="d-flex align-items-center gap-2">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--glass-bg);border:1px solid var(--glass-border);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--text-muted)">3</div>
+      <span style="font-size:.85rem;color:var(--text-muted)">Confirmation</span>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- ── Shipping Form ─────────────────────────────────────────── -->
+    <div class="col-lg-7">
+      <form method="post" action="{% url 'checkout' %}">
+        {% csrf_token %}
+
+        <div class="glass-panel p-4 mb-4">
+          <div style="font-weight:700;font-size:1rem;margin-bottom:1.25rem">
+            <i class="bi bi-geo-alt me-2" style="color:var(--brand-primary)"></i>Shipping Address
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label-custom">Full Name</label>
+              <input type="text" name="name" class="form-control form-control-custom"
+                     placeholder="Sumeet Mankari" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label-custom">Address Line 1</label>
+              <input type="text" name="address_line1" class="form-control form-control-custom"
+                     placeholder="123 MG Road" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label-custom">Address Line 2 <span style="font-weight:400;text-transform:none">(optional)</span></label>
+              <input type="text" name="address_line2" class="form-control form-control-custom"
+                     placeholder="Apartment, floor, etc.">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-custom">City</label>
+              <input type="text" name="city" class="form-control form-control-custom"
+                     placeholder="Mumbai" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-custom">PIN Code</label>
+              <input type="text" name="pincode" class="form-control form-control-custom"
+                     placeholder="400001" pattern="[0-9]{6}" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label-custom">Country</label>
+              <input type="text" name="country" class="form-control form-control-custom"
+                     value="India" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label-custom">Order Notes <span style="font-weight:400;text-transform:none">(optional)</span></label>
+              <textarea name="notes" class="form-control form-control-custom" rows="2"
+                        placeholder="Leave at door, ring bell, etc."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment placeholder -->
+        <div class="glass-panel p-4 mb-4">
+          <div style="font-weight:700;font-size:1rem;margin-bottom:1rem">
+            <i class="bi bi-credit-card me-2" style="color:var(--brand-primary)"></i>Payment
+          </div>
+          <div class="d-flex align-items-center gap-3 p-3"
+               style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:10px">
+            <i class="bi bi-shield-check-fill" style="color:#4ade80;font-size:1.4rem"></i>
+            <div>
+              <div style="font-weight:600;font-size:.9rem">Cash on Delivery</div>
+              <div style="font-size:.78rem;color:var(--text-muted)">Pay when your order arrives</div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-brand w-100" style="padding:1rem;font-size:1.05rem">
+          <i class="bi bi-bag-check-fill me-2"></i>Place Order — ₹{{ cart.subtotal }}
+        </button>
+        <p class="text-center mt-2" style="font-size:.75rem;color:var(--text-muted)">
+          By placing your order, you agree to our Terms &amp; Privacy Policy.
+        </p>
+      </form>
+    </div>
+
+    <!-- ── Order Summary ──────────────────────────────────────────── -->
+    <div class="col-lg-5">
+      <div class="summary-box">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:1rem">Your Order</div>
+        {% for item in cart.items %}
+        <div class="summary-row">
+          <div>
+            <div style="font-size:.88rem;font-weight:500">{{ item.name|default:"Item"|truncatechars:30 }}</div>
+            <div style="font-size:.75rem;color:var(--text-muted)">Qty: {{ item.quantity }}</div>
+          </div>
+          <span style="font-size:.9rem;font-weight:600;flex-shrink:0;margin-left:.75rem">₹{{ item.subtotal }}</span>
+        </div>
+        {% endfor %}
+        <div class="summary-row" style="margin-top:.5rem">
+          <span style="color:var(--text-muted)">Shipping</span>
+          <span style="color:#4ade80;font-weight:600">Free</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-total">Total</span>
+          <span class="summary-total">₹{{ cart.subtotal }}</span>
+        </div>
+
+        <div class="mt-4 d-flex flex-column gap-2" style="font-size:.78rem;color:var(--text-muted)">
+          <div class="d-flex align-items-center gap-2"><i class="bi bi-truck"></i>Free delivery on all orders</div>
+          <div class="d-flex align-items-center gap-2"><i class="bi bi-arrow-counterclockwise"></i>Easy 30-day returns</div>
+          <div class="d-flex align-items-center gap-2"><i class="bi bi-shield-check"></i>Secure & encrypted checkout</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
