@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-service
+  labels:
+    app: catalog-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: catalog-service
+  template:
+    metadata:
+      labels:
+        app: catalog-service
+    spec:
+      containers:
+      - name: catalog-service
+        image: sumeet02/django-retail-catalog:latest
+        ports:
+        - containerPort: 8001
+        env:
+        - name: DJANGO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: catalog-secrets
+              key: django-secret-key
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: catalog-secrets
+              key: database-url
+        - name: DJANGO_DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: catalog-config
+              key: django-debug
+        - name: DJANGO_ALLOWED_HOSTS
+          valueFrom:
+            configMapKeyRef:
+              name: catalog-config
+              key: django-allowed-hosts
+        livenessProbe:
+          httpGet:
+            path: /health/
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/
+            port: 8001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-service
+  labels:
+    app: catalog-service
+spec:
+  selector:
+    app: catalog-service
+  ports:
+  - port: 8001
+    targetPort: 8001
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalog-config
+data:
+  django-debug: "False"
+  django-allowed-hosts: "catalog-service,localhost,127.0.0.1"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: catalog-secrets
+type: Opaque
+data:
+  django-secret-key: eW91ci12ZXJ5LXNlY3JldC1rZXktY2hhbmdlLWluLXByb2R1Y3Rpb24tbWluLTUwLWNoYXJz
+  database-url: cG9zdGdyZXNxbDovL3VzZXI6cGFzc0BjYXRhbG9nLWRiOjU0MzIvY2F0YWxvZ19kYg==
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: catalog-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: catalog-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70

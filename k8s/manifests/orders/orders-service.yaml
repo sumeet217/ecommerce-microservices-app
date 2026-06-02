@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-service
+  labels:
+    app: orders-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: orders-service
+  template:
+    metadata:
+      labels:
+        app: orders-service
+    spec:
+      containers:
+      - name: orders-service
+        image: sumeet02/django-retail-orders:latest
+        ports:
+        - containerPort: 8003
+        env:
+        - name: DJANGO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: orders-secrets
+              key: django-secret-key
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: orders-secrets
+              key: database-url
+        - name: DJANGO_DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: django-debug
+        - name: DJANGO_ALLOWED_HOSTS
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: django-allowed-hosts
+        - name: CART_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: cart-service-url
+        livenessProbe:
+          httpGet:
+            path: /health/
+            port: 8003
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/
+            port: 8003
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-service
+  labels:
+    app: orders-service
+spec:
+  selector:
+    app: orders-service
+  ports:
+  - port: 8003
+    targetPort: 8003
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orders-config
+data:
+  django-debug: "False"
+  django-allowed-hosts: "orders-service,localhost,127.0.0.1"
+  cart-service-url: "http://cart-service:8002"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: orders-secrets
+type: Opaque
+data:
+  django-secret-key: eW91ci12ZXJ5LXNlY3JldC1rZXktY2hhbmdlLWluLXByb2R1Y3Rpb24tbWluLTUwLWNoYXJz
+  database-url: cG9zdGdyZXNxbDovL3VzZXI6cGFzc0BvcmRlcnMtZGI6NTQzMi9vcmRlcnNfZGI=
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: orders-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: orders-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
