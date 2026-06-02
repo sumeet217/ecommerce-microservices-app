@@ -46,7 +46,37 @@ A production-ready e-commerce backend built as a suite of independent Django mic
                     ┌────────────────────────┐
                     │       orders-db        │
                     │       Postgres         │
-                    └────────────────────────┘
+                    └────────────────────────┘ ┌─────────────────────────────────┐
+                     │       Browser / Mobile Client    │
+                     └──────────────┬──────────────────┘
+                                    │ :80
+                     ┌──────────────▼──────────────────┐
+                     │           Nginx Proxy            │
+                     │   (static files + API routing)   │
+                     └──────────────┬──────────────────┘
+                                    │ :8080
+                     ┌──────────────▼──────────────────┐
+                     │           UI Service             │
+                     │   Django Templates + Bootstrap 5  │
+                     │   (BFF — Backend for Frontend)    │
+                     └───────┬──────────┬──────┬───────┘
+                             │          │      │
+              Internal Docker Network   │      │
+                             │          │      │
+           ┌─────────────────▼──┐  ┌───▼───┐  ▼────────────────┐
+           │   Catalog Service  │  │  Cart │  │  Orders Service  │
+           │      :8001         │  │ :8002 │  │      :8003       │
+           │  Django REST + PG  │  │  DRF  │  │  Django REST+PG  │
+           └─────────────────┬──┘  └──┬────┘  └────────────────┘
+                             │        │ Redis
+                    ┌────────▼──┐  ┌──▼─────┐
+                    │ catalog-db│  │  Redis │
+                    │ Postgres  │  │  :6379 │
+                    └───────────┘  └────────┘
+                    ┌────────────────────────┐
+                    │       orders-db        │
+                    │       Postgres         │
+                    └───────────────────────
 ```
 
 > The UI Service is the only service exposed to the browser. It acts as a BFF, calling the three backend APIs over the internal Docker network.

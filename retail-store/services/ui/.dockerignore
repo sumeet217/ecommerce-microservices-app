@@ -1,9 +1,14 @@
-# ─── UI Service .dockerignore ──────────────────────────────────────────────────
-# Keep the Docker build context lean — exclude anything not needed at runtime.
+# ─── UI Service .dockerignore ─────────────────────────────────────────────────
+# Excludes everything not needed at runtime to keep the build context lean,
+# improve cache efficiency, and prevent secrets from leaking into the image.
+#
+# Note: staticfiles/ is intentionally excluded from the build context — the
+# builder stage runs collectstatic internally and copies the result to runtime.
 
-# Python artefacts
+# ─── Python bytecode & build artefacts ───────────────────────────────────────
 __pycache__/
 *.py[cod]
+*$py.class
 *.pyo
 *.pyd
 *.pyc
@@ -13,49 +18,73 @@ __pycache__/
 dist/
 build/
 *.whl
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
 
-# Virtual environments
+# ─── Virtual environments ─────────────────────────────────────────────────────
 .venv/
 venv/
 env/
 ENV/
 .env/
 
-# Django dev artefacts
+# ─── Django dev artefacts ─────────────────────────────────────────────────────
+*.log
+local_settings.py
 db.sqlite3
 *.sqlite3
-staticfiles/   # collected at build time — recreated by collectstatic
+staticfiles/
+media/
 
-# Secrets / env files
+# ─── Secrets / env files ──────────────────────────────────────────────────────
 .env
 .env.*
-!.env.example   # keep the example so docs are included
+!.env.example
+*.pem
+*.key
+*.p12
 
-# Tests / CI
+# ─── Testing / CI ─────────────────────────────────────────────────────────────
 tests/
 .pytest_cache/
 .coverage
+.coveragerc
 htmlcov/
+.tox/
+coverage.xml
 *.coveragerc
 
-# Editors / OS
-.DS_Store
-Thumbs.db
+# ─── Editors / IDE ────────────────────────────────────────────────────────────
 .idea/
 .vscode/
 *.swp
 *.swo
+*.swn
+*.sublime-project
+*.sublime-workspace
 
-# Git
+# ─── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.pid
+
+# ─── Git ──────────────────────────────────────────────────────────────────────
 .git/
 .gitignore
 .gitattributes
 
-# Docker meta
+# ─── Docker meta (no need to copy into the image itself) ─────────────────────
 Dockerfile*
 docker-compose*.yml
 .dockerignore
 
-# Docs / CI
+# ─── Docs / CI config ─────────────────────────────────────────────────────────
 *.md
+docs/
 .github/

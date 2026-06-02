@@ -1,13 +1,13 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: cart-service-hpa
+  name: orders-service-hpa
   namespace: ecommerce
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: cart-service
+    name: orders-service
   minReplicas: 2
   maxReplicas: 10
   metrics:

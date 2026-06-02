@@ -2,10 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: orders-service
+  namespace: ecommerce
   labels:
     app: orders-service
 spec:
-  replicas: 3
+  # replicas intentionally omitted — managed by HPA (minReplicas: 2, maxReplicas: 10)
   selector:
     matchLabels:
       app: orders-service
@@ -14,11 +15,23 @@ spec:
       labels:
         app: orders-service
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
       - name: orders-service
         image: sumeet02/django-retail-orders:latest
+        # TODO: Pin to an immutable tag (e.g. :1.2.3 or a git SHA) before production
+        imagePullPolicy: Always
         ports:
         - containerPort: 8003
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
         env:
         - name: DJANGO_SECRET_KEY
           valueFrom:
@@ -45,18 +58,42 @@ spec:
             configMapKeyRef:
               name: orders-config
               key: cart-service-url
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: port
+        - name: GUNICORN_WORKERS
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: gunicorn-workers
+        - name: GUNICORN_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: gunicorn-timeout
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: orders-config
+              key: log-level
         livenessProbe:
           httpGet:
             path: /health/
             port: 8003
           initialDelaySeconds: 30
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /health/
             port: 8003
           initialDelaySeconds: 5
           periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
         resources:
           requests:
             memory: "256Mi"
@@ -64,55 +101,3 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "1000m"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: orders-service
-  labels:
-    app: orders-service
-spec:
-  selector:
-    app: orders-service
-  ports:
-  - port: 8003
-    targetPort: 8003
-    protocol: TCP
-  type: ClusterIP
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: orders-config
-data:
-  django-debug: "False"
-  django-allowed-hosts: "orders-service,localhost,127.0.0.1"
-  cart-service-url: "http://cart-service:8002"
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: orders-secrets
-type: Opaque
-data:
-  django-secret-key: eW91ci12ZXJ5LXNlY3JldC1rZXktY2hhbmdlLWluLXByb2R1Y3Rpb24tbWluLTUwLWNoYXJz
-  database-url: cG9zdGdyZXNxbDovL3VzZXI6cGFzc0BvcmRlcnMtZGI6NTQzMi9vcmRlcnNfZGI=
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: orders-service-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: orders-service
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
