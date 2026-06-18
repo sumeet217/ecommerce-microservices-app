@@ -3,6 +3,7 @@
 #
 #  Services
 #  --------
+#  auth-service     :8004  Django REST + PostgreSQL (auth-db)  — JWT Auth
 #  catalog-service  :8001  Django REST + PostgreSQL (catalog-db)
 #  cart-service     :8002  Django REST + Redis
 #  orders-service   :8003  Django REST + PostgreSQL (orders-db)
@@ -11,6 +12,7 @@
 #
 #  Infrastructure
 #  --------------
+#  auth-db          PostgreSQL 16 for the Auth Service
 #  catalog-db       PostgreSQL 16 for the Catalog Service
 #  orders-db        PostgreSQL 16 for the Orders Service
 #  redis            Redis 7 for the Cart Service
@@ -24,6 +26,83 @@
 # =============================================================================
 
 services:
+
+  # ===========================================================================
+  # Infrastructure: PostgreSQL for Auth
+  # ===========================================================================
+  auth-db:
+    image: postgres:16-alpine
+    container_name: auth-db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB:       ${AUTH_POSTGRES_DB}
+      POSTGRES_USER:     ${AUTH_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${AUTH_POSTGRES_PASSWORD}
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    networks:
+      - retail-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_POSTGRES_USER} -d ${AUTH_POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ===========================================================================
+  # Auth Service  (Django REST + PostgreSQL + JWT)
+  # ===========================================================================
+  auth-service:
+    build:
+      context: ./retail-store/services/auth
+    container_name: auth-service
+    restart: unless-stopped
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Django core
+      DJANGO_SECRET_KEY:    ${AUTH_DJANGO_SECRET_KEY}
+      DJANGO_DEBUG:         ${AUTH_DJANGO_DEBUG}
+      DJANGO_ALLOWED_HOSTS: ${AUTH_DJANGO_ALLOWED_HOSTS}
+      DJANGO_SETTINGS_MODULE: ${AUTH_DJANGO_SETTINGS_MODULE}
+
+      # Database
+      DB_HOST:     ${AUTH_DB_HOST}
+      DB_PORT:     ${AUTH_DB_PORT}
+      DB_NAME:     ${AUTH_DB_NAME}
+      DB_USER:     ${AUTH_DB_USER}
+      DB_PASSWORD: ${AUTH_DB_PASSWORD}
+      DATABASE_URL: ${AUTH_DATABASE_URL}
+
+      # JWT
+      JWT_ACCESS_TOKEN_LIFETIME:  ${JWT_ACCESS_TOKEN_LIFETIME}
+      JWT_REFRESH_TOKEN_LIFETIME: ${JWT_REFRESH_TOKEN_LIFETIME}
+
+      # Gunicorn
+      PORT:             ${AUTH_PORT}
+      GUNICORN_WORKERS: ${AUTH_GUNICORN_WORKERS}
+      GUNICORN_TIMEOUT: ${AUTH_GUNICORN_TIMEOUT}
+
+      # CORS
+      CORS_ALLOWED_ORIGINS: ${AUTH_CORS_ALLOWED_ORIGINS}
+      CORS_ALLOW_ALL_ORIGINS: ${AUTH_CORS_ALLOW_ALL_ORIGINS}
+
+      LOG_LEVEL: ${AUTH_LOG_LEVEL}
+    networks:
+      - retail-net
+    ports:
+      - "8004:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
 
   # ===========================================================================
   # Infrastructure: PostgreSQL for Catalog
@@ -327,6 +406,7 @@ services:
   # Nginx — public reverse proxy on port 80
   #
   # Routes:
+  #   /api/v1/auth/     -->  auth-service:8000
   #   /api/v1/catalog/  -->  catalog-service:8001
   #   /api/v1/cart/     -->  cart-service:8002
   #   /api/v1/orders/   -->  orders-service:8003
@@ -337,6 +417,8 @@ services:
     container_name: nginx
     restart: unless-stopped
     depends_on:
+      auth-service:
+        condition: service_healthy
       ui-service:
         condition: service_healthy
       catalog-service:
@@ -362,6 +444,8 @@ services:
 # Volumes — persist database and cache data between container restarts
 # =============================================================================
 volumes:
+  auth_db_data:
+    driver: local
   catalog_db_data:
     driver: local
   orders_db_data:
