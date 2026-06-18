@@ -65,7 +65,7 @@ A production-ready e-commerce backend built as a suite of independent Django mic
 | **Orders Service** | 8003 | PostgreSQL | Order placement, status lifecycle |
 | **UI Service** | 80 / 8080 | — | Server-rendered storefront (Django Templates + Bootstrap 5) |
 
-### Auth Service *(New)*
+### Auth Service
 Handles all user identity and authentication for the platform. Provides JWT-based login with 15-minute access tokens and 7-day refresh tokens. Token blacklisting on logout prevents reuse. Exposes a `/verify/` endpoint that other microservices can call to validate tokens without sharing the secret key directly. Rate-limits the login endpoint to prevent brute-force attacks.
 
 ### Catalog Service
