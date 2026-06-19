@@ -55,8 +55,8 @@ services:
   # Auth Service  (Django REST + PostgreSQL + JWT)
   # ===========================================================================
   auth-service:
-    build:
-      context: ./retail-store/services/auth
+    image: sumeet02/django-auth-service:v1.1.0
+    platform: linux/amd64
     container_name: auth-service
     restart: unless-stopped
     depends_on:
@@ -182,7 +182,8 @@ services:
   # Catalog Service  (Django REST + PostgreSQL)
   # ===========================================================================
   catalog-service:
-    image: sumeet02/django-retail-catalog:latest
+    image: sumeet02/django-retail-catalog:v1.1.0
+    platform: linux/amd64
     container_name: catalog-service
     restart: unless-stopped
     depends_on:
@@ -242,7 +243,8 @@ services:
   # Cart Service  (Django REST + Redis)
   # ===========================================================================
   cart-service:
-    image: sumeet02/django-retail-cart:latest
+    image: sumeet02/django-retail-cart:v1.1.0
+    platform: linux/amd64
     container_name: cart-service
     restart: unless-stopped
     depends_on:
@@ -296,7 +298,8 @@ services:
   # Orders Service  (Django REST + PostgreSQL)
   # ===========================================================================
   orders-service:
-    image: sumeet02/django-retail-orders:latest
+    image: sumeet02/django-retail-orders:v1.1.0
+    platform: linux/amd64
     container_name: orders-service
     restart: unless-stopped
     depends_on:
@@ -356,7 +359,8 @@ services:
   # The public-facing Nginx reverse proxy below sits in front of it on :80.
   # ===========================================================================
   ui-service:
-    image: sumeet02/django-retail-ui:latest
+    image: sumeet02/django-retail-ui:v1.1.0
+    platform: linux/amd64
     container_name: ui-service
     restart: unless-stopped
     depends_on:
@@ -379,10 +383,14 @@ services:
       CATALOG_SERVICE_URL: ${UI_CATALOG_SERVICE_URL}
       CART_SERVICE_URL:    ${UI_CART_SERVICE_URL}
       ORDERS_SERVICE_URL:  ${UI_ORDERS_SERVICE_URL}
+      AUTH_SERVICE_URL:    ${UI_AUTH_SERVICE_URL}
       SERVICE_TIMEOUT:     ${UI_SERVICE_TIMEOUT}
 
       # Pagination
       PRODUCTS_PER_PAGE: ${UI_PRODUCTS_PER_PAGE}
+
+      # CSRF trusted origins — must include every host:port users access the UI from
+      CSRF_TRUSTED_ORIGINS: "http://localhost,http://localhost:8080,http://127.0.0.1,http://127.0.0.1:8080,http://nginx"
 
       # Gunicorn (internal — Nginx proxies to this)
       GUNICORN_PORT:    ${UI_GUNICORN_PORT}

@@ -21,6 +21,7 @@ TIMEOUT = getattr(settings, "SERVICE_TIMEOUT", 8)
 CATALOG = getattr(settings, "CATALOG_SERVICE_URL", "http://catalog-service:8001")
 CART    = getattr(settings, "CART_SERVICE_URL",    "http://cart-service:8002")
 ORDERS  = getattr(settings, "ORDERS_SERVICE_URL",  "http://orders-service:8003")
+AUTH    = getattr(settings, "AUTH_SERVICE_URL",    "http://auth-service:8000")
 
 
 # ─── Generic helper ───────────────────────────────────────────────────────────
@@ -192,4 +193,54 @@ def cancel_order(user_id: str, order_id: int,
         ORDERS, f"/api/v1/orders/{order_id}/cancel/",
         json={"reason": reason},
         headers={"X-User-Id": user_id},
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AUTH SERVICE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def auth_login(email: str, password: str) -> tuple[int, dict]:
+    """POST /api/v1/auth/login/ — returns (status, {access_token, refresh_token, ...})."""
+    return _post(AUTH, "/api/v1/auth/login/", json={"email": email, "password": password})
+
+
+def auth_register(
+    email: str,
+    password: str,
+    password_confirm: str,
+    first_name: str = "",
+    last_name: str = "",
+) -> tuple[int, dict]:
+    """POST /api/v1/auth/register/ — create account, returns tokens."""
+    return _post(
+        AUTH,
+        "/api/v1/auth/register/",
+        json={
+            "email": email,
+            "password": password,
+            "password_confirm": password_confirm,
+            "first_name": first_name,
+            "last_name": last_name,
+        },
+    )
+
+
+def auth_logout(refresh_token: str, access_token: str) -> tuple[int, dict]:
+    """POST /api/v1/auth/logout/ — blacklist refresh token."""
+    return _post(
+        AUTH,
+        "/api/v1/auth/logout/",
+        json={"refresh_token": refresh_token},
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+
+def auth_get_me(access_token: str) -> dict | None:
+    """GET /api/v1/auth/me/ — fetch current user profile using access token."""
+    return _get(
+        AUTH,
+        "/api/v1/auth/me/",
+        headers={"Authorization": f"Bearer {access_token}"},
     )

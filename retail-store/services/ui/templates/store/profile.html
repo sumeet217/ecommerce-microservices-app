@@ -1,0 +1,219 @@
+{% extends "store/base.html" %}
+{% load static %}
+
+{% block title %}My Profile — RetailStore{% endblock %}
+
+{% block extra_head %}
+<style>
+  .profile-wrapper {
+    max-width: 720px;
+    margin: 3rem auto;
+    padding: 0 1rem;
+  }
+
+  .profile-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 2.5rem;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    animation: slideUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
+  }
+
+  @keyframes slideUp {
+    from { opacity:0; transform: translateY(20px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .avatar-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+  }
+
+  .profile-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.2rem;
+  }
+
+  .profile-email {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+  }
+
+  .info-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+  }
+
+  .info-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.3rem;
+  }
+
+  .info-value {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .badge-active {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    background: rgba(34,197,94,0.15);
+    color: #22c55e;
+    border: 1px solid rgba(34,197,94,0.25);
+    border-radius: 20px;
+    padding: 0.25rem 0.75rem;
+    font-weight: 600;
+  }
+
+  .action-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-profile-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+    cursor: pointer;
+  }
+
+  .btn-profile-outline:hover {
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+    background: rgba(99,102,241,0.05);
+  }
+
+  .btn-logout {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 10px;
+    color: #ef4444;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .btn-logout:hover {
+    background: rgba(239,68,68,0.18);
+    border-color: rgba(239,68,68,0.4);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-wrapper">
+  <div class="profile-card">
+
+    <!-- Header -->
+    <div class="profile-header">
+      <div class="avatar-circle">
+        {% if profile.first_name %}{{ profile.first_name|first|upper }}{% else %}{{ profile.email|first|upper }}{% endif %}
+      </div>
+      <div>
+        <div class="profile-name">
+          {% if profile.full_name %}{{ profile.full_name }}
+          {% elif profile.first_name %}{{ profile.first_name }} {{ profile.last_name }}
+          {% else %}{{ profile.email }}{% endif %}
+        </div>
+        <div class="profile-email">{{ profile.email }}</div>
+        <div class="mt-2">
+          <span class="badge-active"><i class="bi bi-circle-fill" style="font-size:0.5rem"></i>Active Account</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info grid -->
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">First Name</div>
+        <div class="info-value">{{ profile.first_name|default:"—" }}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Last Name</div>
+        <div class="info-value">{{ profile.last_name|default:"—" }}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Email Address</div>
+        <div class="info-value">{{ profile.email }}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Member Since</div>
+        <div class="info-value">
+          {% if profile.date_joined %}
+            {{ profile.date_joined|slice:":10" }}
+          {% else %}—{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="action-row">
+      <a href="{% url 'order-list' %}" class="btn-profile-outline">
+        <i class="bi bi-bag"></i>My Orders
+      </a>
+      <a href="{% url 'home' %}" class="btn-profile-outline">
+        <i class="bi bi-shop"></i>Continue Shopping
+      </a>
+      <form method="post" action="{% url 'logout' %}" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" class="btn-logout">
+          <i class="bi bi-box-arrow-right"></i>Sign Out
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

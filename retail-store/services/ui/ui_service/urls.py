@@ -5,6 +5,7 @@ from django.urls import path
 from apps.store import views
 
 urlpatterns = [
+    # ── Core pages ───────────────────────────────────────────────────────────
     path("",                          views.HomeView.as_view(),             name="home"),
     path("products/",                 views.ProductListView.as_view(),      name="product-list"),
     path("products/<int:product_id>/",views.ProductDetailView.as_view(),    name="product-detail"),
@@ -18,4 +19,10 @@ urlpatterns = [
     path("orders/<int:order_id>/",    views.OrderDetailView.as_view(),      name="order-detail"),
     path("orders/<int:order_id>/cancel/", views.OrderCancelView.as_view(), name="order-cancel"),
     path("orders/<int:order_id>/confirm/", views.OrderConfirmView.as_view(),name="order-confirm"),
+
+    # ── Auth pages ───────────────────────────────────────────────────────────
+    path("login/",                    views.LoginView.as_view(),            name="login"),
+    path("register/",                 views.RegisterView.as_view(),         name="register"),
+    path("logout/",                   views.LogoutView.as_view(),           name="logout"),
+    path("profile/",                  views.ProfileView.as_view(),          name="profile"),
 ]

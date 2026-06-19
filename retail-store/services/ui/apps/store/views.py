@@ -13,6 +13,8 @@ import logging
 
 from django.contrib import messages
 from django.shortcuts import redirect, render
+from django.views.decorators.http import require_POST
+from django.utils.decorators import method_decorator
 from django.views import View
 
 from . import services
@@ -313,3 +315,182 @@ class OrderCancelView(View):
         else:
             messages.error(request, "Could not cancel the order. Please try again.")
         return redirect("order-detail", order_id=order_id)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AUTH VIEWS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def _is_logged_in(request) -> bool:
+    """Check if the user is authenticated via stored access token."""
+    return bool(request.session.get("access_token"))
+
+
+def _get_current_user(request) -> dict | None:
+    """Return user profile dict from session, or None."""
+    return request.session.get("user_profile")
+
+
+class LoginView(View):
+    """GET /login/ — show login form. POST /login/ — authenticate via auth service."""
+
+    def get(self, request):
+        if _is_logged_in(request):
+            return redirect("home")
+        next_url = request.GET.get("next", "")
+        return render(request, "store/login.html", {
+            "page_title": "Sign In — RetailStore",
+            "next": next_url,
+        })
+
+    def post(self, request):
+        email    = request.POST.get("email", "").strip().lower()
+        password = request.POST.get("password", "")
+        next_url = request.POST.get("next", "") or "home"
+
+        if not email or not password:
+            messages.error(request, "Please enter both email and password.")
+            return render(request, "store/login.html", {
+                "page_title": "Sign In — RetailStore",
+                "email": email,
+                "next": next_url,
+            })
+
+        status_code, data = services.auth_login(email, password)
+
+        if status_code == 200:
+            # Store tokens in session
+            request.session["access_token"]  = data.get("access_token", "")
+            request.session["refresh_token"] = data.get("refresh_token", "")
+            # Fetch and cache user profile
+            profile = services.auth_get_me(data.get("access_token", ""))
+            if profile:
+                request.session["user_profile"] = profile
+                # Use real user ID for orders
+                request.session["user_id"] = str(profile.get("id", ""))
+            messages.success(request, f"Welcome back, {profile.get('first_name') or email}! ❤")
+            return redirect(next_url)
+
+        elif status_code == 401:
+            messages.error(request, "Invalid email or password. Please try again.")
+        elif status_code == 429:
+            messages.warning(request, "Too many login attempts. Please wait a moment.")
+        else:
+            err = data.get("detail") or data.get("error") or "Login failed. Please try again."
+            messages.error(request, err)
+
+        return render(request, "store/login.html", {
+            "page_title": "Sign In — RetailStore",
+            "email": email,
+            "next": next_url,
+        })
+
+
+class RegisterView(View):
+    """GET /register/ — show registration form. POST /register/ — create account."""
+
+    def get(self, request):
+        if _is_logged_in(request):
+            return redirect("home")
+        return render(request, "store/register.html", {
+            "page_title": "Create Account — RetailStore",
+        })
+
+    def post(self, request):
+        email            = request.POST.get("email", "").strip().lower()
+        first_name       = request.POST.get("first_name", "").strip()
+        last_name        = request.POST.get("last_name", "").strip()
+        password         = request.POST.get("password", "")
+        password_confirm = request.POST.get("password_confirm", "")
+
+        # Basic client-side validation
+        if not email or not password:
+            messages.error(request, "Email and password are required.")
+            return render(request, "store/register.html", {
+                "page_title": "Create Account — RetailStore",
+                "email": email, "first_name": first_name, "last_name": last_name,
+            })
+
+        status_code, data = services.auth_register(
+            email=email,
+            password=password,
+            password_confirm=password_confirm,
+            first_name=first_name,
+            last_name=last_name,
+        )
+
+        if status_code == 201:
+            # Auto-login after registration
+            request.session["access_token"]  = data.get("access_token", "")
+            request.session["refresh_token"] = data.get("refresh_token", "")
+            profile = {
+                "id":         data.get("id"),
+                "email":      data.get("email", email),
+                "first_name": data.get("first_name", first_name),
+                "last_name":  data.get("last_name", last_name),
+                "full_name":  f"{first_name} {last_name}".strip() or email,
+            }
+            request.session["user_profile"] = profile
+            request.session["user_id"] = str(data.get("id", ""))
+            messages.success(request, f"Account created! Welcome, {first_name or email}! 🎉")
+            return redirect("home")
+
+        # Surface validation errors from the auth service
+        for field, errors in data.items():
+            if isinstance(errors, list):
+                for err in errors:
+                    messages.error(request, f"{field.replace('_', ' ').title()}: {err}")
+            elif isinstance(errors, str):
+                messages.error(request, errors)
+
+        return render(request, "store/register.html", {
+            "page_title": "Create Account — RetailStore",
+            "email": email, "first_name": first_name, "last_name": last_name,
+        })
+
+
+class LogoutView(View):
+    """POST /logout/ — invalidate session and redirect to home."""
+
+    def post(self, request):
+        access_token  = request.session.get("access_token", "")
+        refresh_token = request.session.get("refresh_token", "")
+
+        # Tell the auth service to blacklist the refresh token
+        if access_token and refresh_token:
+            services.auth_logout(refresh_token, access_token)
+
+        # Clear auth-related session keys
+        for key in ("access_token", "refresh_token", "user_profile"):
+            request.session.pop(key, None)
+
+        # Reset user_id back to anonymous
+        request.session["user_id"] = f"guest-{uuid.uuid4().hex[:12]}"
+
+        messages.success(request, "You have been signed out. See you soon! 👋")
+        return redirect("home")
+
+    # Also allow GET (e.g. clicking a link) for convenience
+    def get(self, request):
+        return self.post(request)
+
+
+class ProfileView(View):
+    """GET /profile/ — show current user profile."""
+
+    def get(self, request):
+        if not _is_logged_in(request):
+            messages.warning(request, "Please sign in to view your profile.")
+            return redirect("login")
+
+        # Refresh profile from auth service
+        access_token = request.session.get("access_token", "")
+        profile = services.auth_get_me(access_token)
+        if profile:
+            request.session["user_profile"] = profile
+
+        return render(request, "store/profile.html", {
+            "page_title": "My Profile — RetailStore",
+            "profile": profile or request.session.get("user_profile", {}),
+        })
