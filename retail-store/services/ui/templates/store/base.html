@@ -44,7 +44,7 @@
         </a>
       </div>
 
-      <!-- Right side: search + cart -->
+      <!-- Right side: search + cart + auth -->
       <div class="d-flex align-items-center gap-3">
         <!-- Inline search -->
         <form action="{% url 'product-list' %}" method="get" class="d-none d-lg-flex">
@@ -65,6 +65,67 @@
             <span class="cart-badge">{{ cart_count }}</span>
           {% endif %}
         </a>
+
+        <!-- Auth: guest vs logged-in -->
+        {% if request.session.access_token %}
+          <!-- User avatar dropdown -->
+          <div class="dropdown">
+            <button class="btn btn-sm d-flex align-items-center gap-2"
+                    id="userMenuBtn"
+                    data-bs-toggle="dropdown" aria-expanded="false"
+                    style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);border-radius:20px;color:var(--text-primary);padding:0.35rem 0.85rem;">
+              <span class="d-inline-flex align-items-center justify-content-center"
+                    style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--brand-primary),var(--brand-secondary));font-size:0.75rem;font-weight:700;color:#fff;">
+                {% with profile=request.session.user_profile %}
+                  {% if profile.first_name %}{{ profile.first_name|first|upper }}{% else %}U{% endif %}
+                {% endwith %}
+              </span>
+              <span class="d-none d-md-inline" style="font-size:0.85rem;font-weight:500;">
+                {% with profile=request.session.user_profile %}
+                  {{ profile.first_name|default:"Account" }}
+                {% endwith %}
+              </span>
+              <i class="bi bi-chevron-down" style="font-size:0.7rem;opacity:0.7"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end"
+                style="background:rgba(18,18,30,0.95);border:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(20px);border-radius:14px;min-width:180px;padding:0.5rem;">
+              <li>
+                <a class="dropdown-item rounded-3" href="{% url 'profile' %}"
+                   style="color:var(--text-primary);padding:0.5rem 0.85rem;font-size:0.88rem;">
+                  <i class="bi bi-person me-2"></i>My Profile
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item rounded-3" href="{% url 'order-list' %}"
+                   style="color:var(--text-primary);padding:0.5rem 0.85rem;font-size:0.88rem;">
+                  <i class="bi bi-bag me-2"></i>My Orders
+                </a>
+              </li>
+              <li><hr class="dropdown-divider" style="border-color:rgba(255,255,255,0.1);margin:0.4rem 0;"></li>
+              <li>
+                <form method="post" action="{% url 'logout' %}" style="margin:0;">
+                  {% csrf_token %}
+                  <button type="submit" class="dropdown-item rounded-3"
+                          style="color:#ef4444;padding:0.5rem 0.85rem;font-size:0.88rem;background:none;border:none;width:100%;text-align:left;cursor:pointer;">
+                    <i class="bi bi-box-arrow-right me-2"></i>Sign Out
+                  </button>
+                </form>
+              </li>
+            </ul>
+          </div>
+        {% else %}
+          <!-- Guest: Login + Register -->
+          <a href="{% url 'login' %}" class="nav-link d-none d-md-inline-flex align-items-center gap-1"
+             style="font-size:0.88rem;">
+            <i class="bi bi-box-arrow-in-right"></i>
+            <span>Sign In</span>
+          </a>
+          <a href="{% url 'register' %}" class="d-none d-md-inline-flex"
+             style="padding:0.4rem 1rem;background:linear-gradient(135deg,var(--brand-primary),var(--brand-secondary));border-radius:20px;color:#fff;text-decoration:none;font-size:0.85rem;font-weight:600;box-shadow:0 3px 10px rgba(99,102,241,0.35);transition:opacity 0.2s,transform 0.15s;"
+             onmouseenter="this.style.opacity='0.88'" onmouseleave="this.style.opacity='1'">
+            Register
+          </a>
+        {% endif %}
 
         <!-- Mobile menu toggle -->
         <button class="d-md-none btn btn-sm" data-bs-toggle="collapse" data-bs-target="#mobileMenu"
@@ -87,6 +148,20 @@
             <button class="btn btn-brand" type="submit"><i class="bi bi-search"></i></button>
           </div>
         </form>
+        {% if request.session.access_token %}
+          <hr style="border-color:rgba(255,255,255,0.1);margin:0.3rem 0;">
+          <a href="{% url 'profile' %}" class="nav-link"><i class="bi bi-person me-2"></i>My Profile</a>
+          <form method="post" action="{% url 'logout' %}" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" class="nav-link w-100 text-start" style="background:none;border:none;color:#ef4444;cursor:pointer;">
+              <i class="bi bi-box-arrow-right me-2"></i>Sign Out
+            </button>
+          </form>
+        {% else %}
+          <hr style="border-color:rgba(255,255,255,0.1);margin:0.3rem 0;">
+          <a href="{% url 'login' %}" class="nav-link"><i class="bi bi-box-arrow-in-right me-2"></i>Sign In</a>
+          <a href="{% url 'register' %}" class="nav-link" style="color:var(--brand-primary);font-weight:600;"><i class="bi bi-person-plus me-2"></i>Register</a>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -127,6 +202,10 @@
           <a href="{% url 'product-list' %}" class="text-decoration-none" style="color:var(--text-muted)">Shop</a>
           <a href="{% url 'cart' %}" class="text-decoration-none" style="color:var(--text-muted)">Cart</a>
           <a href="{% url 'order-list' %}" class="text-decoration-none" style="color:var(--text-muted)">Orders</a>
+          {% if not request.session.access_token %}
+          <a href="{% url 'login' %}" class="text-decoration-none" style="color:var(--text-muted)">Sign In</a>
+          <a href="{% url 'register' %}" class="text-decoration-none" style="color:var(--text-muted)">Register</a>
+          {% endif %}
         </div>
       </div>
       <div class="col-md-4 text-md-end" style="font-size:0.78rem">

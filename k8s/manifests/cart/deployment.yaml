@@ -2,10 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cart-service
+  namespace: ecommerce
   labels:
     app: cart-service
 spec:
-  replicas: 3
+  # replicas intentionally omitted — managed by HPA (minReplicas: 2, maxReplicas: 10)
   selector:
     matchLabels:
       app: cart-service
@@ -14,11 +15,23 @@ spec:
       labels:
         app: cart-service
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
       - name: cart-service
         image: sumeet02/django-retail-cart:latest
+        # TODO: Pin to an immutable tag (e.g. :1.2.3 or a git SHA) before production
+        imagePullPolicy: Always
         ports:
         - containerPort: 8002
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
         env:
         - name: DJANGO_SECRET_KEY
           valueFrom:
@@ -101,12 +114,16 @@ spec:
             port: 8002
           initialDelaySeconds: 30
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /health/
             port: 8002
           initialDelaySeconds: 5
           periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
         resources:
           requests:
             memory: "128Mi"

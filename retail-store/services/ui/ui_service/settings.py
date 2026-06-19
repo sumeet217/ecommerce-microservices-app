@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("DJANGO_SECRET_KEY")
 DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="*", cast=Csv())
-CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="http://localhost,http://127.0.0.1,http://nginx", cast=Csv())
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="http://localhost,http://localhost:8080,http://127.0.0.1,http://127.0.0.1:8080,http://nginx", cast=Csv())
 CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_HTTPONLY = False
 
@@ -87,6 +87,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CATALOG_SERVICE_URL = config("CATALOG_SERVICE_URL", default="http://catalog-service:8001")
 CART_SERVICE_URL    = config("CART_SERVICE_URL",    default="http://cart-service:8002")
 ORDERS_SERVICE_URL  = config("ORDERS_SERVICE_URL",  default="http://orders-service:8003")
+AUTH_SERVICE_URL    = config("AUTH_SERVICE_URL",    default="http://auth-service:8000")
 SERVICE_TIMEOUT     = config("SERVICE_TIMEOUT", default=8, cast=int)
 
 # ─── Pagination ───────────────────────────────────────────────────────────────

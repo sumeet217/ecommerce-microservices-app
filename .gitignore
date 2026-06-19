@@ -49,6 +49,16 @@ virtualenv/
 *.p12
 secrets/
 
+# Kubernetes secret manifests — never commit real secret values to git
+# Apply secrets separately via: kubectl apply -f k8s/manifests/<service>/secret.yaml
+# Or use an external secrets manager (ESO, Vault, AWS Secrets Manager)
+k8s/manifests/**/secret.yaml
+k8s/manifests/*/secret.yaml
+k8s/manifests/cart/secret.yaml
+k8s/manifests/catalog/secret.yaml
+k8s/manifests/orders/secret.yaml
+k8s/manifests/ui/secret.yaml
+
 # Docker environment files (keep .env.example only)
 .env.local
 .env.production

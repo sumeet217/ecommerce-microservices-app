@@ -1,0 +1,46 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: orders-service-netpol
+  namespace: ecommerce
+spec:
+  podSelector:
+    matchLabels:
+      app: orders-service
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow traffic from ui-service only
+  - from:
+    - podSelector:
+        matchLabels:
+          app: ui-service
+    ports:
+    - protocol: TCP
+      port: 8003
+  egress:
+  # Allow egress to cart-service
+  - to:
+    - podSelector:
+        matchLabels:
+          app: cart-service
+    ports:
+    - protocol: TCP
+      port: 8002
+  # Allow egress to orders database
+  - to:
+    - podSelector:
+        matchLabels:
+          app: orders-db
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

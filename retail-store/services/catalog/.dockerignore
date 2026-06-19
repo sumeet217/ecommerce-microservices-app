@@ -1,13 +1,20 @@
-# Python
+# ─── Catalog Service .dockerignore ────────────────────────────────────────────
+# Excludes everything not needed at runtime to keep the build context lean,
+# improve cache efficiency, and prevent secrets from leaking into the image.
+
+# ─── Python bytecode & build artefacts ───────────────────────────────────────
 __pycache__/
 *.py[cod]
+*$py.class
 *.pyo
 *.pyd
+*.pyc
 .Python
 *.egg
 *.egg-info/
 dist/
 build/
+*.whl
 eggs/
 parts/
 var/
@@ -17,39 +24,64 @@ develop-eggs/
 lib/
 lib64/
 
-# Virtual environments
-.env
-.venv
-env/
+# ─── Virtual environments ─────────────────────────────────────────────────────
+.venv/
 venv/
+env/
 ENV/
+.env/
 
-# Django
+# ─── Django dev artefacts ─────────────────────────────────────────────────────
 *.log
+local_settings.py
 db.sqlite3
+*.sqlite3
 staticfiles/
 media/
 
-# Testing
+# ─── Secrets / env files ──────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# ─── Testing / CI ─────────────────────────────────────────────────────────────
+tests/
 .pytest_cache/
 .coverage
+.coveragerc
 htmlcov/
 .tox/
+coverage.xml
+*.coveragerc
 
-# IDE
+# ─── Editors / IDE ────────────────────────────────────────────────────────────
 .idea/
 .vscode/
 *.swp
 *.swo
+*.swn
+*.sublime-project
+*.sublime-workspace
 
-# Git
+# ─── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.pid
+
+# ─── Git ──────────────────────────────────────────────────────────────────────
 .git/
 .gitignore
+.gitattributes
 
-# Docker
-Dockerfile
+# ─── Docker meta (no need to copy into the image itself) ─────────────────────
+Dockerfile*
+docker-compose*.yml
 .dockerignore
 
-# Docs
+# ─── Docs / CI config ─────────────────────────────────────────────────────────
 *.md
 docs/
+.github/
