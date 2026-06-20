@@ -1,4 +1,4 @@
-# 🛒 RetailStore — Django Microservices E-Commerce
+# RetailStore — Django Microservices E-Commerce
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Django](https://img.shields.io/badge/Django-5.0-092E20?logo=django&logoColor=white)](https://djangoproject.com)
@@ -14,7 +14,7 @@ A production-ready e-commerce backend built as a suite of independent Django mic
 
 ---
 
-## 📐 Architecture
+## Architecture
 
 ```
                      ┌─────────────────────────────────┐
@@ -55,7 +55,7 @@ A production-ready e-commerce backend built as a suite of independent Django mic
 
 ---
 
-## 🧩 Services Overview
+## Services Overview
 
 | Service | Port | Database | Responsibility |
 |---|---|---|---|
@@ -82,7 +82,7 @@ Six-page Django app: Home, Product Listing, Product Detail, Cart, Checkout, Orde
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -101,7 +101,7 @@ Six-page Django app: Home, Product Listing, Product Detail, Cart, Checkout, Orde
 
 ---
 
-## 🚀 Local Setup (Docker Compose)
+## Local Setup (Docker Compose)
 
 ### Prerequisites
 
@@ -163,7 +163,7 @@ docker compose exec auth-service python manage.py migrate
 
 ---
 
-## 🐳 DockerHub Images
+## DockerHub Images
 
 Pre-built images are available on Docker Hub:
 
@@ -178,7 +178,7 @@ Pre-built images are available on Docker Hub:
 
 ---
 
-## 📡 API Endpoints
+## API Endpoints
 
 ### Auth Service — `http://localhost:8004`
 
@@ -253,7 +253,7 @@ PENDING ──► CONFIRMED ──► SHIPPED ──► DELIVERED
 
 ---
 
-## 🔐 Security
+## Security
 
 | Feature | Implementation |
 |---|---|
@@ -267,7 +267,7 @@ PENDING ──► CONFIRMED ──► SHIPPED ──► DELIVERED
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 > Add screenshots by placing images in a `docs/screenshots/` folder and updating the paths below.
 
@@ -282,7 +282,7 @@ PENDING ──► CONFIRMED ──► SHIPPED ──► DELIVERED
 
 ---
 
-## 🧪 Running Tests
+## Running Tests
 
 Each service has an independent test suite using pytest, factory-boy, and Faker. Tests run against SQLite in-memory — no real database required.
 
@@ -302,7 +302,7 @@ cd retail-store/services/orders  && pytest
 
 ---
 
-## 👤 Author
+## Author
 
 **Sumeet Mankari**
 - GitHub: [@sumeet217](https://github.com/sumeet217)
@@ -310,6 +310,6 @@ cd retail-store/services/orders  && pytest
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
