@@ -6,6 +6,8 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://postgresql.org)
 [![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)](https://redis.io)
 [![Docker](https://img.shields.io/badge/Docker-24%2B-2496ED?logo=docker&logoColor=white)](https://docker.com)
+[![GitLab CI/CD](https://img.shields.io/badge/CI%2FCD-GitLab-orange?logo=gitlab)](https://gitlab.com)
+[![DevSecOps](https://img.shields.io/badge/DevSecOps-Enabled-success)](https://devsecops.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 A production-ready e-commerce platform built with microservices architecture using Django and Django REST Framework. Each service is independently deployable, scalable, and owns its data store, following best practices for distributed systems.
@@ -17,6 +19,7 @@ A production-ready e-commerce platform built with microservices architecture usi
 - [Services](#services)
 - [Technology Stack](#technology-stack)
 - [Getting Started](#getting-started)
+- [CI/CD Pipeline](#cicd-pipeline)
 - [API Documentation](#api-documentation)
 - [Security](#security)
 - [Testing](#testing)
@@ -36,6 +39,8 @@ A production-ready e-commerce platform built with microservices architecture usi
 - **Docker Ready**: Full containerization with Docker Compose orchestration
 - **Production Grade**: Rate limiting, health checks, and proper error handling
 - **Comprehensive Tests**: pytest-based test suite with factory patterns
+- **DevSecOps Pipeline**: GitLab CI/CD with security scanning and quality gates
+- **AWS Deployment**: Automated EC2 deployment with rollback capability
 
 ---
 
@@ -203,6 +208,113 @@ Pre-built images are available on Docker Hub:
 
 ---
 
+## CI/CD Pipeline
+
+This project includes a **production-ready DevSecOps CI/CD pipeline** for GitLab, featuring automated testing, security scanning, quality gates, and AWS EC2 deployment.
+
+### 🎯 Pipeline Stages
+
+```
+CLONE → TEST → SECURITY SCAN → QUALITY GATE → BUILD → DEPLOY
+ ~10s    ~4m       ~7m             ~30s         ~3m     ~4m
+```
+
+### 🛡️ Security & Quality Features
+
+| Category | Tools |
+|----------|-------|
+| **Code Quality** | pytest, coverage, flake8, black, isort |
+| **Security Scanning** | SonarQube, OWASP Dependency Check, Bandit, Trivy |
+| **Quality Gates** | Automated enforcement, pipeline fails on critical issues |
+| **Deployment** | Automated EC2 deployment, health checks, rollback |
+
+### 📦 CI/CD Files Location
+
+All CI/CD configuration is in the `retail-store/` directory:
+
+```
+retail-store/
+├── .gitlab-ci.yml              # Main CI/CD pipeline (6 stages)
+├── sonar-project.properties    # SonarQube configuration
+├── suppression.xml             # OWASP suppression rules
+├── setup-ec2.sh                # EC2 instance setup script
+├── README_CI_CD.md             # CI/CD overview
+├── CI_CD_SETUP.md              # Detailed setup guide
+├── QUICK_REFERENCE.md          # Quick operations reference
+├── PIPELINE_ARCHITECTURE.md    # Visual architecture docs
+└── IMPLEMENTATION_SUMMARY.md   # Implementation summary
+```
+
+### 🚀 Quick Setup
+
+1. **Configure GitLab Variables** (Settings → CI/CD → Variables):
+   ```
+   SONAR_HOST_URL      # SonarQube server URL
+   SONAR_TOKEN         # SonarQube auth token (Masked)
+   AWS_DEFAULT_REGION  # AWS region (e.g., us-east-1)
+   EC2_HOST            # EC2 instance IP or hostname
+   EC2_USER            # SSH user (e.g., ubuntu)
+   SSH_PRIVATE_KEY     # SSH private key content (File, Masked)
+   ```
+
+2. **Setup EC2 Instance**:
+   ```bash
+   # Copy and run setup script on EC2
+   scp retail-store/setup-ec2.sh ubuntu@<EC2_HOST>:~/
+   ssh ubuntu@<EC2_HOST>
+   sudo ./setup-ec2.sh
+   ```
+
+3. **Push Code to Trigger Pipeline**:
+   ```bash
+   git add .
+   git commit -m "feat: add CI/CD pipeline"
+   git push
+   ```
+
+### 📊 Service Architecture on EC2
+
+```
+Internet → Nginx (Port 80) → Django Services
+                               ├── Auth (8001)
+                               ├── Catalog (8002)
+                               ├── Cart (8003)
+                               ├── Orders (8004)
+                               └── UI (8000)
+```
+
+All services run as systemd services with automatic restarts and health monitoring.
+
+### 📚 Detailed Documentation
+
+- **[README_CI_CD.md](retail-store/README_CI_CD.md)** - Complete CI/CD overview
+- **[CI_CD_SETUP.md](retail-store/CI_CD_SETUP.md)** - Step-by-step setup instructions
+- **[QUICK_REFERENCE.md](retail-store/QUICK_REFERENCE.md)** - Common commands and operations
+- **[PIPELINE_ARCHITECTURE.md](retail-store/PIPELINE_ARCHITECTURE.md)** - Visual pipeline diagrams
+
+### 🔍 Security Scanning
+
+The pipeline performs comprehensive security scanning:
+
+1. **SonarQube**: Code quality, security hotspots, code smells
+2. **OWASP Dependency Check**: Known CVEs in Python dependencies
+3. **Bandit**: Python-specific security linting
+4. **Trivy**: Filesystem vulnerability scanning
+
+Quality gates enforce standards - **critical issues block deployment**.
+
+### 🎯 Deployment Process
+
+1. **Automated Testing**: All tests must pass
+2. **Security Scanning**: No critical vulnerabilities
+3. **Quality Gate**: SonarQube standards enforced
+4. **Build Artifacts**: Deployment package created
+5. **Manual Approval**: Deploy to production (main branch only)
+6. **Health Checks**: Automatic verification post-deployment
+7. **Rollback**: One-click rollback to previous version
+
+---
+
 ## API Endpoints
 
 ### Auth Service — `http://localhost:8004`
@@ -280,6 +392,8 @@ PENDING ──► CONFIRMED ──► SHIPPED ──► DELIVERED
 
 ## Security
 
+### Application Security
+
 | Feature | Implementation |
 |---|---|
 | Password hashing | PBKDF2 (Django default) |
@@ -290,11 +404,31 @@ PENDING ──► CONFIRMED ──► SHIPPED ──► DELIVERED
 | Email normalisation | Case-insensitive, lowercased on register & login |
 | CORS | Configurable per-service via `CORS_ALLOWED_ORIGINS` |
 
+### CI/CD Security
+
+The GitLab pipeline includes **4 layers of security scanning**:
+
+| Tool | Purpose | Blocks Pipeline |
+|------|---------|-----------------|
+| **SonarQube** | Code quality & security hotspots | ✅ Quality gate |
+| **OWASP Dependency Check** | Known CVEs in dependencies | ✅ Critical vulns |
+| **Bandit** | Python security linting | ⚠️ Warning only |
+| **Trivy** | Filesystem vulnerabilities | ✅ Critical vulns |
+
+**Security Best Practices Enforced:**
+- ✅ No hardcoded secrets (GitLab masked variables)
+- ✅ SSH key-based authentication only
+- ✅ Automated backup before deployment
+- ✅ Quality gates block vulnerable code
+- ✅ Security scan reports in every pipeline run
+
 ---
 
 ## Running Tests
 
 Each service has an independent test suite using pytest, factory-boy, and Faker. Tests run against SQLite in-memory — no real database required.
+
+### Local Testing
 
 ```bash
 # Auth Service (35+ test cases)
@@ -309,6 +443,22 @@ cd retail-store/services/cart    && pytest
 # Orders Service
 cd retail-store/services/orders  && pytest
 ```
+
+### CI/CD Testing
+
+The GitLab pipeline automatically runs:
+
+- ✅ **Unit Tests**: All services tested in parallel
+- ✅ **Code Coverage**: Cobertura reports generated
+- ✅ **Linting**: flake8, black, isort checks
+- ✅ **Security Linting**: Bandit for Python security issues
+
+**Test Reports Available:**
+- JUnit XML (test results)
+- Cobertura XML (coverage reports)
+- HTML reports (downloadable artifacts)
+
+Pipeline **fails automatically** if tests don't pass.
 
 ---
 
