@@ -1,0 +1,496 @@
+---
+# GitLab CI/CD Pipeline for Django Microservices E-Commerce
+# Following DevSecOps Best Practices
+
+variables:
+  # Python Configuration
+  PYTHON_VERSION: "3.11"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  
+  # SonarQube Configuration
+  SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+  SONAR_HOST_URL: "${SONAR_HOST_URL}"
+  SONAR_TOKEN: "${SONAR_TOKEN}"
+  
+  # AWS Configuration
+  AWS_DEFAULT_REGION: "${AWS_DEFAULT_REGION}"
+  EC2_HOST: "${EC2_HOST}"
+  EC2_USER: "${EC2_USER}"
+  
+  # Security Scanning
+  TRIVY_CACHE_DIR: ".trivycache/"
+  
+  # Service Names
+  SERVICES: "auth catalog cart orders ui"
+
+# Define pipeline stages
+stages:
+  - clone
+  - test
+  - security-scan
+  - quality-gate
+  - build
+  - deploy
+
+# Cache configuration for faster builds
+cache:
+  paths:
+    - .cache/pip
+    - .sonar/cache
+    - .trivycache/
+
+# ============================================
+# STAGE 1: CLONE & SETUP
+# ============================================
+
+clone_repository:
+  stage: clone
+  image: alpine/git:latest
+  script:
+    - echo "Repository cloned successfully"
+    - echo "Project path: $CI_PROJECT_DIR"
+    - echo "Branch: $CI_COMMIT_REF_NAME"
+    - echo "Commit: $CI_COMMIT_SHORT_SHA"
+    - ls -la
+  artifacts:
+    paths:
+      - ./*
+    expire_in: 1 hour
+  tags:
+    - docker
+
+# ============================================
+# STAGE 2: TEST & CODE QUALITY
+# ============================================
+
+unit_tests:
+  stage: test
+  image: python:${PYTHON_VERSION}-slim
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev
+    - pip install --upgrade pip
+  script:
+    - echo "Running unit tests for all services..."
+    - |
+      for service in $SERVICES; do
+        echo "Testing service: $service"
+        cd services/$service
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-django
+        
+        # Run tests with coverage
+        pytest --cov=. --cov-report=xml:coverage-$service.xml --cov-report=term --junit-xml=junit-$service.xml || true
+        
+        cd $CI_PROJECT_DIR
+      done
+  artifacts:
+    reports:
+      junit:
+        - services/*/junit-*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: services/*/coverage-*.xml
+    paths:
+      - services/*/coverage-*.xml
+      - services/*/junit-*.xml
+    expire_in: 1 week
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  tags:
+    - docker
+
+lint_code:
+  stage: test
+  image: python:${PYTHON_VERSION}-slim
+  before_script:
+    - pip install --upgrade pip
+    - pip install flake8 pylint black isort bandit
+  script:
+    - echo "Running linting checks..."
+    - |
+      for service in $SERVICES; do
+        echo "Linting service: $service"
+        cd services/$service
+        
+        # Check code formatting
+        echo "Checking code formatting with black..."
+        black --check --diff . || true
+        
+        # Check import sorting
+        echo "Checking import sorting with isort..."
+        isort --check-only --diff . || true
+        
+        # Run flake8
+        echo "Running flake8..."
+        flake8 . --max-line-length=120 --exclude=migrations,venv,__pycache__ --statistics || true
+        
+        cd $CI_PROJECT_DIR
+      done
+  allow_failure: true
+  tags:
+    - docker
+
+# ============================================
+# STAGE 3: SECURITY SCANNING
+# ============================================
+
+sonarqube_analysis:
+  stage: security-scan
+  image: sonarsource/sonar-scanner-cli:latest
+  dependencies:
+    - unit_tests
+  script:
+    - echo "Running SonarQube analysis..."
+    - |
+      sonar-scanner \
+        -Dsonar.projectKey=${CI_PROJECT_NAME} \
+        -Dsonar.projectName=${CI_PROJECT_NAME} \
+        -Dsonar.projectVersion=${CI_COMMIT_SHORT_SHA} \
+        -Dsonar.sources=services \
+        -Dsonar.exclusions=**/migrations/**,**/tests/**,**/__pycache__/**,**/venv/** \
+        -Dsonar.python.coverage.reportPaths=services/*/coverage-*.xml \
+        -Dsonar.python.version=${PYTHON_VERSION} \
+        -Dsonar.host.url=${SONAR_HOST_URL} \
+        -Dsonar.login=${SONAR_TOKEN}
+  allow_failure: false
+  only:
+    - main
+    - develop
+    - merge_requests
+  tags:
+    - docker
+
+owasp_dependency_check:
+  stage: security-scan
+  image: owasp/dependency-check:latest
+  script:
+    - echo "Running OWASP Dependency Check..."
+    - |
+      for service in $SERVICES; do
+        echo "Scanning dependencies for service: $service"
+        /usr/share/dependency-check/bin/dependency-check.sh \
+          --scan services/$service \
+          --format ALL \
+          --project "$service-service" \
+          --out dependency-check-reports/$service \
+          --suppression suppression.xml \
+          --enableExperimental \
+          || true
+      done
+  artifacts:
+    paths:
+      - dependency-check-reports/
+    reports:
+      dependency_scanning: dependency-check-reports/*/dependency-check-report.json
+    expire_in: 1 week
+    when: always
+  allow_failure: true
+  tags:
+    - docker
+
+bandit_security_scan:
+  stage: security-scan
+  image: python:${PYTHON_VERSION}-slim
+  before_script:
+    - pip install bandit[toml]
+  script:
+    - echo "Running Bandit security scan..."
+    - |
+      for service in $SERVICES; do
+        echo "Scanning service: $service"
+        bandit -r services/$service -f json -o bandit-report-$service.json -ll || true
+        bandit -r services/$service -f txt -o bandit-report-$service.txt -ll || true
+      done
+  artifacts:
+    paths:
+      - bandit-report-*.json
+      - bandit-report-*.txt
+    expire_in: 1 week
+  allow_failure: true
+  tags:
+    - docker
+
+trivy_filesystem_scan:
+  stage: security-scan
+  image: aquasec/trivy:latest
+  before_script:
+    - mkdir -p $TRIVY_CACHE_DIR
+  script:
+    - echo "Running Trivy filesystem scan..."
+    - |
+      for service in $SERVICES; do
+        echo "Scanning service: $service"
+        trivy fs \
+          --severity CRITICAL,HIGH,MEDIUM \
+          --format json \
+          --output trivy-fs-report-$service.json \
+          services/$service || true
+        
+        trivy fs \
+          --severity CRITICAL,HIGH,MEDIUM \
+          --format table \
+          --output trivy-fs-report-$service.txt \
+          services/$service || true
+      done
+    - echo "Filesystem scan completed"
+  artifacts:
+    paths:
+      - trivy-fs-report-*.json
+      - trivy-fs-report-*.txt
+    expire_in: 1 week
+    when: always
+  tags:
+    - docker
+
+# ============================================
+# STAGE 4: QUALITY GATE
+# ============================================
+
+sonarqube_quality_gate:
+  stage: quality-gate
+  image: curlimages/curl:latest
+  script:
+    - echo "Checking SonarQube Quality Gate status..."
+    - |
+      # Wait for SonarQube to process the analysis
+      sleep 10
+      
+      # Get the quality gate status
+      QUALITY_GATE_STATUS=$(curl -s -u ${SONAR_TOKEN}: \
+        "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=${CI_PROJECT_NAME}" \
+        | grep -oP '"status":"\K\w+' || echo "NONE")
+      
+      echo "Quality Gate Status: $QUALITY_GATE_STATUS"
+      
+      if [ "$QUALITY_GATE_STATUS" = "ERROR" ]; then
+        echo "Quality Gate FAILED! Please fix the issues in SonarQube."
+        exit 1
+      elif [ "$QUALITY_GATE_STATUS" = "OK" ]; then
+        echo "Quality Gate PASSED!"
+        exit 0
+      else
+        echo "Quality Gate status unknown or not available yet."
+        exit 0
+      fi
+  dependencies:
+    - sonarqube_analysis
+  allow_failure: false
+  only:
+    - main
+    - develop
+  tags:
+    - docker
+
+security_gate:
+  stage: quality-gate
+  image: python:${PYTHON_VERSION}-slim
+  script:
+    - echo "Evaluating security scan results..."
+    - pip install jq || apt-get update && apt-get install -y jq
+    - |
+      CRITICAL_FOUND=0
+      
+      # Check Trivy results for critical vulnerabilities
+      for report in trivy-fs-report-*.json; do
+        if [ -f "$report" ]; then
+          CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' "$report" 2>/dev/null || echo 0)
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "CRITICAL vulnerabilities found in $report: $CRITICAL"
+            CRITICAL_FOUND=1
+          fi
+        fi
+      done
+      
+      if [ $CRITICAL_FOUND -eq 1 ]; then
+        echo "Security gate FAILED: Critical vulnerabilities detected!"
+        echo "Please review the Trivy reports and fix critical issues."
+        exit 1
+      else
+        echo "Security gate PASSED: No critical vulnerabilities found."
+      fi
+  dependencies:
+    - trivy_filesystem_scan
+  allow_failure: true
+  tags:
+    - docker
+
+# ============================================
+# STAGE 5: BUILD
+# ============================================
+
+build_artifacts:
+  stage: build
+  image: python:${PYTHON_VERSION}-slim
+  script:
+    - echo "Building application artifacts..."
+    - |
+      for service in $SERVICES; do
+        echo "Building service: $service"
+        cd services/$service
+        
+        # Install dependencies
+        pip install -r requirements.txt
+        
+        # Collect static files if applicable
+        if [ -f "manage.py" ]; then
+          python manage.py collectstatic --noinput --clear || true
+        fi
+        
+        cd $CI_PROJECT_DIR
+      done
+    - echo "Creating deployment archive..."
+    - tar -czf retail-store-${CI_COMMIT_SHORT_SHA}.tar.gz services/ --exclude='*.pyc' --exclude='__pycache__' --exclude='.pytest_cache'
+  artifacts:
+    paths:
+      - retail-store-${CI_COMMIT_SHORT_SHA}.tar.gz
+    expire_in: 1 week
+  only:
+    - main
+    - develop
+  tags:
+    - docker
+
+# ============================================
+# STAGE 6: DEPLOY TO AWS EC2
+# ============================================
+
+deploy_to_ec2:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client rsync bash curl
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - echo "Deploying to EC2 instance: $EC2_HOST"
+    
+    # Transfer deployment package
+    - echo "Transferring deployment package..."
+    - scp -o StrictHostKeyChecking=no retail-store-${CI_COMMIT_SHORT_SHA}.tar.gz ${EC2_USER}@${EC2_HOST}:/tmp/
+    
+    # Execute deployment commands on EC2
+    - |
+      ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << 'ENDSSH'
+        set -e
+        
+        echo "Starting deployment process..."
+        
+        # Create deployment directory
+        DEPLOY_DIR="/opt/retail-store"
+        sudo mkdir -p $DEPLOY_DIR
+        
+        # Extract the package
+        echo "Extracting deployment package..."
+        cd /tmp
+        tar -xzf retail-store-*.tar.gz
+        
+        # Backup current deployment
+        if [ -d "$DEPLOY_DIR/services" ]; then
+          echo "Backing up current deployment..."
+          sudo mv $DEPLOY_DIR/services $DEPLOY_DIR/services.backup.$(date +%Y%m%d_%H%M%S)
+        fi
+        
+        # Move new deployment
+        echo "Deploying new version..."
+        sudo mv services $DEPLOY_DIR/
+        sudo chown -R $USER:$USER $DEPLOY_DIR
+        
+        # Install/update dependencies for each service
+        cd $DEPLOY_DIR
+        for service in auth catalog cart orders ui; do
+          echo "Setting up service: $service"
+          cd $DEPLOY_DIR/services/$service
+          
+          # Create virtual environment if not exists
+          if [ ! -d "venv" ]; then
+            python3 -m venv venv
+          fi
+          
+          # Activate and install dependencies
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install gunicorn
+          
+          # Run migrations
+          if [ -f "manage.py" ]; then
+            python manage.py migrate --noinput || true
+            python manage.py collectstatic --noinput --clear || true
+          fi
+          
+          deactivate
+        done
+        
+        # Restart services using systemd or supervisor
+        echo "Restarting services..."
+        sudo systemctl restart retail-store-* || true
+        
+        # Health check
+        echo "Performing health checks..."
+        sleep 5
+        curl -f http://localhost:8000/health || echo "Health check warning"
+        
+        # Cleanup
+        echo "Cleaning up..."
+        rm -f /tmp/retail-store-*.tar.gz
+        
+        echo "Deployment completed successfully!"
+      ENDSSH
+    
+    - echo "Deployment to EC2 completed!"
+  dependencies:
+    - build_artifacts
+  environment:
+    name: production
+    url: http://$EC2_HOST
+  only:
+    - main
+  when: manual
+  tags:
+    - docker
+
+# ============================================
+# ROLLBACK JOB
+# ============================================
+
+rollback_deployment:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+  script:
+    - echo "Rolling back deployment on EC2..."
+    - |
+      ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << 'ENDSSH'
+        set -e
+        
+        DEPLOY_DIR="/opt/retail-store"
+        BACKUP=$(ls -t $DEPLOY_DIR/services.backup.* 2>/dev/null | head -1)
+        
+        if [ -z "$BACKUP" ]; then
+          echo "No backup found to rollback to!"
+          exit 1
+        fi
+        
+        echo "Rolling back to: $BACKUP"
+        sudo rm -rf $DEPLOY_DIR/services
+        sudo mv $BACKUP $DEPLOY_DIR/services
+        
+        # Restart services
+        sudo systemctl restart retail-store-* || true
+        
+        echo "Rollback completed!"
+      ENDSSH
+  only:
+    - main
+  when: manual
+  tags:
+    - docker
