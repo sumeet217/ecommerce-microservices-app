@@ -130,6 +130,7 @@ def cancel_order(order: Order, reason: str = "") -> Order:
             f"(current status: {order.status!r})."
         )
 
+    old_status = order.status  # capture before transition mutates it
     order.transition_to(Order.Status.CANCELLED)
     order.cancellation_reason = reason
     order.save(update_fields=["status", "cancellation_reason", "updated_at"])
@@ -137,7 +138,7 @@ def cancel_order(order: Order, reason: str = "") -> Order:
     logger.info(
         "Order #%s cancelled (was %s). Reason: %r",
         order.pk,
-        order.status,
+        old_status,
         reason,
     )
     return order

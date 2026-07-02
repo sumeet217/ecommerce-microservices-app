@@ -1,7 +1,6 @@
-
-# ------------------------------------------------------------
+# ============================================================
 # Python
-# ------------------------------------------------------------
+# ============================================================
 __pycache__/
 *.py[cod]
 *.pyo
@@ -9,6 +8,8 @@ __pycache__/
 *.pyc
 *.pdb
 .Python
+
+# Distribution / packaging
 build/
 develop-eggs/
 dist/
@@ -21,15 +22,25 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
+# PyInstaller
+*.manifest
+*.spec
 
-# ------------------------------------------------------------
-# Virtual environments
-# ------------------------------------------------------------
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+
+# ============================================================
+# Virtual Environments
+# ============================================================
 .venv/
 venv/
 env/
@@ -38,55 +49,56 @@ ENV/
 virtualenv/
 
 
-# ------------------------------------------------------------
-# Environment and secrets
-# ------------------------------------------------------------
+# ============================================================
+# Environment Variables & Secrets
+# ============================================================
 .env
 .env.*
 !.env.example
 *.pem
 *.key
 *.p12
+*.crt
 secrets/
 
-# Kubernetes secret manifests — never commit real secret values to git
-# Apply secrets separately via: kubectl apply -f k8s/manifests/<service>/secret.yaml
-# Or use an external secrets manager (ESO, Vault, AWS Secrets Manager)
-k8s/manifests/**/secret.yaml
-k8s/manifests/*/secret.yaml
-k8s/manifests/cart/secret.yaml
-k8s/manifests/catalog/secret.yaml
-k8s/manifests/orders/secret.yaml
-k8s/manifests/ui/secret.yaml
-
-# Docker environment files (keep .env.example only)
+# Docker environment overrides
 .env.local
 .env.production
 .env.staging
 .env.development
 
+# Kubernetes secrets (apply separately via kubectl or external secrets manager)
+k8s/manifests/**/secret.yaml
+k8s/manifests/*/secret.yaml
 
-# ------------------------------------------------------------
+
+# ============================================================
 # Django
-# ------------------------------------------------------------
+# ============================================================
 *.sqlite3
+*.sqlite3-journal
+db.sqlite3
 db.sqlite3-journal
 staticfiles/
 mediafiles/
 media/
 local_settings.py
+celerybeat-schedule
+celerybeat.pid
 
 # Database data directories
 postgres_data/
 catalog_db_data/
 orders_db_data/
+auth_db_data/
 redis_data/
 
 
-# ------------------------------------------------------------
-# pytest / coverage
-# ------------------------------------------------------------
+# ============================================================
+# Testing & Coverage
+# ============================================================
 .pytest_cache/
+.tox/
 .coverage
 .coverage.*
 htmlcov/
@@ -94,68 +106,29 @@ coverage.xml
 *.coveragerc
 nosetests.xml
 test-results/
+.hypothesis/
 
 
-# ------------------------------------------------------------
-# mypy / type checkers
-# ------------------------------------------------------------
+# ============================================================
+# Type Checkers
+# ============================================================
 .mypy_cache/
 .dmypy.json
 dmypy.json
 .pytype/
+.pyre/
 
 
-# ------------------------------------------------------------
-# Node.js / npm / yarn / pnpm
-# ------------------------------------------------------------
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-.pnpm-store/
-.npm
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
-
-
-# ------------------------------------------------------------
-# Next.js
-# ------------------------------------------------------------
-.next/
-out/
-
-
-# ------------------------------------------------------------
-# TypeScript
-# ------------------------------------------------------------
-*.tsbuildinfo
-next-env.d.ts
-
-
-# ------------------------------------------------------------
-# Build outputs
-# ------------------------------------------------------------
-dist/
-build/
-*.min.js
-*.min.css
-
-
-# ------------------------------------------------------------
+# ============================================================
 # Docker
-# ------------------------------------------------------------
-# Do not ignore Dockerfiles — they belong in the repo.
-# Ignore any local override files.
+# ============================================================
 docker-compose.override.yml
 docker-compose.local.yml
 
 
-# ------------------------------------------------------------
+# ============================================================
 # Logs
-# ------------------------------------------------------------
+# ============================================================
 *.log
 logs/
 log/
@@ -166,72 +139,135 @@ nginx-access.log
 supervisord.log
 
 
-# ------------------------------------------------------------
+# ============================================================
 # macOS
-# ------------------------------------------------------------
+# ============================================================
 .DS_Store
 .AppleDouble
 .LSOverride
 ._*
+.DocumentRevisions-V100
+.fseventsd
 .Spotlight-V100
+.TemporaryItems
 .Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
 
 
-# ------------------------------------------------------------
+# ============================================================
 # Windows
-# ------------------------------------------------------------
+# ============================================================
 Thumbs.db
+Thumbs.db:encryptable
 ehthumbs.db
-Desktop.ini
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
 $RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
 
 
-# ------------------------------------------------------------
+# ============================================================
 # Linux
-# ------------------------------------------------------------
+# ============================================================
 *~
 .fuse_hidden*
 .directory
 .Trash-*
+.nfs*
 
 
-# ------------------------------------------------------------
-# Editors — VS Code
-# ------------------------------------------------------------
+# ============================================================
+# IDEs & Editors — VS Code
+# ============================================================
 .vscode/
 !.vscode/extensions.json
 !.vscode/settings.json.example
+*.code-workspace
 
 
-# ------------------------------------------------------------
-# Editors — JetBrains (PyCharm, WebStorm, etc.)
-# ------------------------------------------------------------
+# ============================================================
+# IDEs & Editors — JetBrains (PyCharm, WebStorm, IntelliJ)
+# ============================================================
 .idea/
 *.iml
 *.iws
 *.ipr
 out/
+.idea_modules/
 
 
-# ------------------------------------------------------------
-# Editors — Vim / Emacs / other
-# ------------------------------------------------------------
-*.swp
-*.swo
-*.swn
+# ============================================================
+# IDEs & Editors — Vim / Neovim
+# ============================================================
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+Sessionx.vim
+.netrwhist
+tags
+[._]*.un~
+
+
+# ============================================================
+# IDEs & Editors — Emacs
+# ============================================================
 *~
 \#*\#
 /.emacs.desktop
 /.emacs.desktop.lock
-.elc
+*.elc
 auto-save-list
 tramp
 .\#*
+.org-id-locations
+*_archive
+*_flymake.*
+/eshell/history
+/eshell/lastdir
+/elpa/
+*.rel
 
 
-# ------------------------------------------------------------
-# Temporary and misc files
-# ------------------------------------------------------------
+# ============================================================
+# IDEs & Editors — Sublime Text
+# ============================================================
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+sftp-config.json
+Package Control.last-run
+Package Control.ca-list
+Package Control.ca-bundle
+Package Control.system-ca-bundle
+Package Control.cache/
+Package Control.ca-certs/
+Package Control.merged-ca-bundle
+Package Control.user-ca-bundle
+oscrypto-ca-bundle.crt
+bh_unicode_properties.cache
+GitHub.sublime-settings
+
+
+# ============================================================
+# Temporary & Miscellaneous Files
+# ============================================================
 *.tmp
 *.temp
 *.bak
@@ -240,3 +276,6 @@ tramp
 .cache/
 tmp/
 temp/
+*.swp
+*.swo
+*.swn

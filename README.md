@@ -2,15 +2,40 @@
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Django](https://img.shields.io/badge/Django-5.0-092E20?logo=django&logoColor=white)](https://djangoproject.com)
-[![DRF](https://img.shields.io/badge/Django_REST_Framework-3.15-red)](https://www.django-rest-framework.org)
-[![JWT](https://img.shields.io/badge/SimpleJWT-5.3-orange)](https://django-rest-framework-simplejwt.readthedocs.io)
+[![DRF](https://img.shields.io/badge/DRF-3.15-red)](https://www.django-rest-framework.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://postgresql.org)
 [![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)](https://redis.io)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docker.com)
-[![Nginx](https://img.shields.io/badge/Nginx-1.27-009639?logo=nginx&logoColor=white)](https://nginx.org)
+[![Docker](https://img.shields.io/badge/Docker-24%2B-2496ED?logo=docker&logoColor=white)](https://docker.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-A production-ready e-commerce backend built as a suite of independent Django microservices. Each service owns its own data store, exposes a REST API, and can be deployed, scaled, and tested in isolation.
+A production-ready e-commerce platform built with microservices architecture using Django and Django REST Framework. Each service is independently deployable, scalable, and owns its data store, following best practices for distributed systems.
+
+## Table of Contents
+
+- [Features](#features)
+- [Architecture](#architecture)
+- [Services](#services)
+- [Technology Stack](#technology-stack)
+- [Getting Started](#getting-started)
+- [API Documentation](#api-documentation)
+- [Security](#security)
+- [Testing](#testing)
+- [Docker Images](#docker-images)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Features
+
+- **Microservices Architecture**: Independent services with dedicated databases
+- **RESTful APIs**: Complete OpenAPI/Swagger documentation for all endpoints
+- **JWT Authentication**: Secure token-based authentication with refresh and blacklisting
+- **Session-based Cart**: Redis-backed shopping cart with automatic expiration
+- **Order Management**: Complete order lifecycle with status tracking
+- **Product Catalog**: Full-text search, categories, and inventory management
+- **Responsive UI**: Server-side rendered storefront using Django templates and Bootstrap 5
+- **Docker Ready**: Full containerization with Docker Compose orchestration
+- **Production Grade**: Rate limiting, health checks, and proper error handling
+- **Comprehensive Tests**: pytest-based test suite with factory patterns
 
 ---
 
@@ -267,21 +292,6 @@ PENDING ──► CONFIRMED ──► SHIPPED ──► DELIVERED
 
 ---
 
-## Screenshots
-
-> Add screenshots by placing images in a `docs/screenshots/` folder and updating the paths below.
-
-| Page | Preview |
-|---|---|
-| Home / Featured Products | ![Home](docs/screenshots/home.png) |
-| Product Listing | ![Listing](docs/screenshots/listing.png) |
-| Product Detail | ![Detail](docs/screenshots/detail.png) |
-| Cart | ![Cart](docs/screenshots/cart.png) |
-| Checkout | ![Checkout](docs/screenshots/checkout.png) |
-| Order History | ![Orders](docs/screenshots/orders.png) |
-
----
-
 ## Running Tests
 
 Each service has an independent test suite using pytest, factory-boy, and Faker. Tests run against SQLite in-memory — no real database required.
@@ -299,6 +309,20 @@ cd retail-store/services/cart    && pytest
 # Orders Service
 cd retail-store/services/orders  && pytest
 ```
+
+---
+
+## Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes (`git commit -m 'Add your feature'`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a Pull Request
+
+Please ensure your code follows the existing style and includes appropriate tests.
 
 ---
 

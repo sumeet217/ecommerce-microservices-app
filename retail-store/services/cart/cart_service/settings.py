@@ -63,7 +63,7 @@ CART_MAX_ITEMS = config("CART_MAX_ITEMS", default=50, cast=int)
 CART_MAX_QUANTITY_PER_ITEM = config("CART_MAX_QUANTITY_PER_ITEM", default=99, cast=int)
 
 # ─── Downstream Services ──────────────────────────────────────────────────────
-CATALOG_SERVICE_URL = config("CATALOG_SERVICE_URL", default="http://catalog-service:8000")
+CATALOG_SERVICE_URL = config("CATALOG_SERVICE_URL", default="http://catalog-service:8001")
 CATALOG_SERVICE_TIMEOUT = config("CATALOG_SERVICE_TIMEOUT", default=5, cast=int)
 
 # ─── REST Framework ───────────────────────────────────────────────────────────

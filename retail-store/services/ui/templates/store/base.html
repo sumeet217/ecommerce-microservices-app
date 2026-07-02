@@ -23,149 +23,215 @@
 
 <!-- ── Navbar ──────────────────────────────────────────────────────── -->
 <nav class="navbar-custom">
-  <div class="container">
-    <div class="d-flex align-items-center justify-content-between w-100">
-
-      <!-- Brand -->
-      <a href="{% url 'home' %}" class="navbar-brand-logo text-decoration-none">
-        RetailStore
-      </a>
-
-      <!-- Desktop nav -->
-      <div class="d-none d-md-flex align-items-center gap-1">
-        <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-          <i class="bi bi-house me-1"></i>Home
-        </a>
-        <a href="{% url 'product-list' %}" class="nav-link {% if request.resolver_match.url_name == 'product-list' %}active{% endif %}">
-          <i class="bi bi-grid me-1"></i>Shop
-        </a>
-        <a href="{% url 'order-list' %}" class="nav-link {% if 'order' in request.resolver_match.url_name %}active{% endif %}">
-          <i class="bi bi-bag me-1"></i>My Orders
+  <div class="container-fluid px-3 px-lg-5">
+    <div class="row align-items-center w-100 g-0">
+      
+      <!-- Left: Brand -->
+      <div class="col-6 col-md-3">
+        <a href="{% url 'home' %}" class="navbar-brand-logo text-decoration-none d-inline-block">
+          <i class="bi bi-shop-window me-2"></i>RetailStore
         </a>
       </div>
 
-      <!-- Right side: search + cart + auth -->
-      <div class="d-flex align-items-center gap-3">
-        <!-- Inline search -->
-        <form action="{% url 'product-list' %}" method="get" class="d-none d-lg-flex">
-          <div class="input-group" style="width:220px">
-            <input type="search" name="q" class="form-control form-control-sm"
-                   placeholder="Search products…"
-                   style="background:rgba(255,255,255,0.06);border-color:var(--glass-border);color:var(--text-primary)">
-            <button class="btn btn-brand btn-sm" type="submit">
-              <i class="bi bi-search"></i>
-            </button>
-          </div>
-        </form>
+      <!-- Center: Desktop Nav Links -->
+      <div class="col-md-6 d-none d-md-block">
+        <div class="d-flex align-items-center justify-content-center gap-4">
+          <a href="{% url 'home' %}" class="nav-link-modern {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+            <i class="bi bi-house-door me-2"></i>Home
+          </a>
+          <a href="{% url 'product-list' %}" class="nav-link-modern {% if request.resolver_match.url_name == 'product-list' %}active{% endif %}">
+            <i class="bi bi-grid-3x3-gap me-2"></i>Products
+          </a>
+          <a href="{% url 'order-list' %}" class="nav-link-modern {% if 'order' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="bi bi-bag-check me-2"></i>Orders
+          </a>
+        </div>
+      </div>
 
-        <!-- Cart -->
-        <a href="{% url 'cart' %}" class="nav-link position-relative" style="font-size:1.1rem">
-          <i class="bi bi-cart3"></i>
-          {% if cart_count > 0 %}
-            <span class="cart-badge">{{ cart_count }}</span>
+      <!-- Right: Actions (Cart + Auth) -->
+      <div class="col-6 col-md-3">
+        <div class="d-flex align-items-center justify-content-end gap-3 gap-lg-4">
+          
+          <!-- Cart Button -->
+          <a href="{% url 'cart' %}" class="btn-icon-modern position-relative" title="Shopping Cart">
+            <i class="bi bi-cart3"></i>
+            {% if cart_count > 0 %}
+              <span class="cart-badge-modern">{{ cart_count }}</span>
+            {% endif %}
+          </a>
+
+          <!-- Auth Section -->
+          {% if request.session.access_token %}
+            <!-- Logged In: User Dropdown + Logout Button -->
+            <div class="dropdown">
+              <button class="btn-user-modern dropdown-toggle" 
+                      type="button" 
+                      id="userDropdown" 
+                      data-bs-toggle="dropdown" 
+                      aria-expanded="false">
+                <span class="user-avatar">
+                  {% with profile=request.session.user_profile %}
+                    {% if profile.first_name %}{{ profile.first_name|first|upper }}{% else %}U{% endif %}
+                  {% endwith %}
+                </span>
+                <span class="user-name d-none d-lg-inline">
+                  {% with profile=request.session.user_profile %}
+                    {{ profile.first_name|default:"Account" }}
+                  {% endwith %}
+                </span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end dropdown-menu-modern" aria-labelledby="userDropdown">
+                <li class="dropdown-header">
+                  <div class="fw-semibold">
+                    {% with profile=request.session.user_profile %}
+                      {{ profile.full_name|default:"User Account" }}
+                    {% endwith %}
+                  </div>
+                  <div class="text-muted small">
+                    {% with profile=request.session.user_profile %}
+                      {{ profile.email }}
+                    {% endwith %}
+                  </div>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <a class="dropdown-item dropdown-item-modern" href="{% url 'profile' %}">
+                    <i class="bi bi-person-circle me-2"></i>My Profile
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item dropdown-item-modern" href="{% url 'order-list' %}">
+                    <i class="bi bi-bag-check me-2"></i>My Orders
+                  </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <form method="post" action="{% url 'logout' %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="dropdown-item dropdown-item-modern text-danger">
+                      <i class="bi bi-box-arrow-right me-2"></i>Sign Out
+                    </button>
+                  </form>
+                </li>
+              </ul>
+            </div>
+            
+            <!-- Visible Logout Button -->
+            <form method="post" action="{% url 'logout' %}" class="m-0">
+              {% csrf_token %}
+              <button type="submit" class="btn-signin-modern d-none d-sm-inline-flex" style="background-color: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: rgb(248, 113, 113);">
+                <i class="bi bi-box-arrow-right me-2"></i>Logout
+              </button>
+            </form>
+          {% else %}
+            <!-- Guest: Sign In + Register Buttons -->
+            <a href="{% url 'login' %}" class="btn-signin-modern d-none d-sm-inline-flex">
+              <i class="bi bi-person-circle me-2"></i>Sign In
+            </a>
+            <a href="{% url 'register' %}" class="btn-register-modern d-none d-md-inline-flex">
+              <i class="bi bi-person-plus-fill me-2"></i>Register
+            </a>
           {% endif %}
-        </a>
 
-        <!-- Auth: guest vs logged-in -->
-        {% if request.session.access_token %}
-          <!-- User avatar dropdown -->
-          <div class="dropdown">
-            <button class="btn btn-sm d-flex align-items-center gap-2"
-                    id="userMenuBtn"
-                    data-bs-toggle="dropdown" aria-expanded="false"
-                    style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);border-radius:20px;color:var(--text-primary);padding:0.35rem 0.85rem;">
-              <span class="d-inline-flex align-items-center justify-content-center"
-                    style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--brand-primary),var(--brand-secondary));font-size:0.75rem;font-weight:700;color:#fff;">
-                {% with profile=request.session.user_profile %}
-                  {% if profile.first_name %}{{ profile.first_name|first|upper }}{% else %}U{% endif %}
-                {% endwith %}
-              </span>
-              <span class="d-none d-md-inline" style="font-size:0.85rem;font-weight:500;">
-                {% with profile=request.session.user_profile %}
-                  {{ profile.first_name|default:"Account" }}
-                {% endwith %}
-              </span>
-              <i class="bi bi-chevron-down" style="font-size:0.7rem;opacity:0.7"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end"
-                style="background:rgba(18,18,30,0.95);border:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(20px);border-radius:14px;min-width:180px;padding:0.5rem;">
-              <li>
-                <a class="dropdown-item rounded-3" href="{% url 'profile' %}"
-                   style="color:var(--text-primary);padding:0.5rem 0.85rem;font-size:0.88rem;">
-                  <i class="bi bi-person me-2"></i>My Profile
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item rounded-3" href="{% url 'order-list' %}"
-                   style="color:var(--text-primary);padding:0.5rem 0.85rem;font-size:0.88rem;">
-                  <i class="bi bi-bag me-2"></i>My Orders
-                </a>
-              </li>
-              <li><hr class="dropdown-divider" style="border-color:rgba(255,255,255,0.1);margin:0.4rem 0;"></li>
-              <li>
-                <form method="post" action="{% url 'logout' %}" style="margin:0;">
-                  {% csrf_token %}
-                  <button type="submit" class="dropdown-item rounded-3"
-                          style="color:#ef4444;padding:0.5rem 0.85rem;font-size:0.88rem;background:none;border:none;width:100%;text-align:left;cursor:pointer;">
-                    <i class="bi bi-box-arrow-right me-2"></i>Sign Out
-                  </button>
-                </form>
-              </li>
-            </ul>
-          </div>
-        {% else %}
-          <!-- Guest: Login + Register -->
-          <a href="{% url 'login' %}" class="nav-link d-none d-md-inline-flex align-items-center gap-1"
-             style="font-size:0.88rem;">
-            <i class="bi bi-box-arrow-in-right"></i>
-            <span>Sign In</span>
-          </a>
-          <a href="{% url 'register' %}" class="d-none d-md-inline-flex"
-             style="padding:0.4rem 1rem;background:linear-gradient(135deg,var(--brand-primary),var(--brand-secondary));border-radius:20px;color:#fff;text-decoration:none;font-size:0.85rem;font-weight:600;box-shadow:0 3px 10px rgba(99,102,241,0.35);transition:opacity 0.2s,transform 0.15s;"
-             onmouseenter="this.style.opacity='0.88'" onmouseleave="this.style.opacity='1'">
-            Register
-          </a>
-        {% endif %}
-
-        <!-- Mobile menu toggle -->
-        <button class="d-md-none btn btn-sm" data-bs-toggle="collapse" data-bs-target="#mobileMenu"
-                style="color:var(--text-muted);border:1px solid var(--glass-border)">
-          <i class="bi bi-list"></i>
-        </button>
-      </div>
-    </div>
-
-    <!-- Mobile menu -->
-    <div class="collapse d-md-none mt-2" id="mobileMenu">
-      <div class="d-flex flex-column gap-1 pb-2">
-        <a href="{% url 'home' %}" class="nav-link">Home</a>
-        <a href="{% url 'product-list' %}" class="nav-link">Shop</a>
-        <a href="{% url 'order-list' %}" class="nav-link">My Orders</a>
-        <form action="{% url 'product-list' %}" method="get" class="mt-2">
-          <div class="input-group input-group-sm">
-            <input type="search" name="q" class="form-control" placeholder="Search…"
-                   style="background:rgba(255,255,255,0.06);color:var(--text-primary)">
-            <button class="btn btn-brand" type="submit"><i class="bi bi-search"></i></button>
-          </div>
-        </form>
-        {% if request.session.access_token %}
-          <hr style="border-color:rgba(255,255,255,0.1);margin:0.3rem 0;">
-          <a href="{% url 'profile' %}" class="nav-link"><i class="bi bi-person me-2"></i>My Profile</a>
-          <form method="post" action="{% url 'logout' %}" style="margin:0;">
-            {% csrf_token %}
-            <button type="submit" class="nav-link w-100 text-start" style="background:none;border:none;color:#ef4444;cursor:pointer;">
-              <i class="bi bi-box-arrow-right me-2"></i>Sign Out
-            </button>
-          </form>
-        {% else %}
-          <hr style="border-color:rgba(255,255,255,0.1);margin:0.3rem 0;">
-          <a href="{% url 'login' %}" class="nav-link"><i class="bi bi-box-arrow-in-right me-2"></i>Sign In</a>
-          <a href="{% url 'register' %}" class="nav-link" style="color:var(--brand-primary);font-weight:600;"><i class="bi bi-person-plus me-2"></i>Register</a>
-        {% endif %}
+          <!-- Mobile Menu Toggle -->
+          <button class="btn-icon-modern d-md-none" 
+                  type="button" 
+                  data-bs-toggle="offcanvas" 
+                  data-bs-target="#mobileNav" 
+                  aria-controls="mobileNav">
+            <i class="bi bi-list"></i>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </nav>
+
+<!-- Mobile Offcanvas Menu -->
+<div class="offcanvas offcanvas-end offcanvas-modern" tabindex="-1" id="mobileNav" aria-labelledby="mobileNavLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="mobileNavLabel">
+      <i class="bi bi-shop-window me-2"></i>RetailStore
+    </h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+    <!-- User Info (if logged in) -->
+    {% if request.session.access_token %}
+      <div class="mobile-user-info mb-4">
+        <div class="d-flex align-items-center gap-3">
+          <div class="user-avatar-large">
+            {% with profile=request.session.user_profile %}
+              {% if profile.first_name %}{{ profile.first_name|first|upper }}{% else %}U{% endif %}
+            {% endwith %}
+          </div>
+          <div>
+            <div class="fw-semibold">
+              {% with profile=request.session.user_profile %}
+                {{ profile.full_name|default:"User Account" }}
+              {% endwith %}
+            </div>
+            <div class="text-muted small">
+              {% with profile=request.session.user_profile %}
+                {{ profile.email }}
+              {% endwith %}
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Navigation Links -->
+    <div class="mobile-nav-links">
+      <a href="{% url 'home' %}" class="mobile-nav-item" data-bs-dismiss="offcanvas">
+        <i class="bi bi-house-door"></i>
+        <span>Home</span>
+      </a>
+      <a href="{% url 'product-list' %}" class="mobile-nav-item" data-bs-dismiss="offcanvas">
+        <i class="bi bi-grid-3x3-gap"></i>
+        <span>Products</span>
+      </a>
+      <a href="{% url 'cart' %}" class="mobile-nav-item" data-bs-dismiss="offcanvas">
+        <i class="bi bi-cart3"></i>
+        <span>Cart</span>
+        {% if cart_count > 0 %}
+          <span class="badge bg-primary rounded-pill ms-auto">{{ cart_count }}</span>
+        {% endif %}
+      </a>
+      <a href="{% url 'order-list' %}" class="mobile-nav-item" data-bs-dismiss="offcanvas">
+        <i class="bi bi-bag-check"></i>
+        <span>My Orders</span>
+      </a>
+    </div>
+
+    {% if request.session.access_token %}
+      <hr class="my-3">
+      <div class="mobile-nav-links">
+        <a href="{% url 'profile' %}" class="mobile-nav-item" data-bs-dismiss="offcanvas">
+          <i class="bi bi-person-circle"></i>
+          <span>My Profile</span>
+        </a>
+        <form method="post" action="{% url 'logout' %}" class="m-0">
+          {% csrf_token %}
+          <button type="submit" class="mobile-nav-item text-danger w-100 border-0 bg-transparent text-start">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Sign Out</span>
+          </button>
+        </form>
+      </div>
+    {% else %}
+      <hr class="my-3">
+      <div class="d-grid gap-2">
+        <a href="{% url 'login' %}" class="btn btn-outline-light" data-bs-dismiss="offcanvas">
+          <i class="bi bi-person-circle me-2"></i>Sign In
+        </a>
+        <a href="{% url 'register' %}" class="btn btn-primary" data-bs-dismiss="offcanvas">
+          <i class="bi bi-person-plus-fill me-2"></i>Register
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
 
 <!-- ── Flash messages ──────────────────────────────────────────────── -->
 {% if messages %}
