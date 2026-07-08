@@ -21,9 +21,6 @@ services:
       start_period: 15s
 
   auth-service:
-    build:
-      context: ./retail-store/services/auth
-      dockerfile: Dockerfile
     image: sumeet02/django-auth-service:v1.1.0
     container_name: auth-service
     restart: unless-stopped
@@ -141,9 +138,6 @@ services:
 
 
   catalog-service:
-    build:
-      context: ./retail-store/services/catalog
-      dockerfile: Dockerfile
     image: sumeet02/django-retail-catalog:v1.1.0
     container_name: catalog-service
     restart: unless-stopped
@@ -202,9 +196,6 @@ services:
 
 
   cart-service:
-    build:
-      context: ./retail-store/services/cart
-      dockerfile: Dockerfile
     image: sumeet02/django-retail-cart:v1.1.0
     container_name: cart-service
     restart: unless-stopped
@@ -257,9 +248,6 @@ services:
 
 
   orders-service:
-    build:
-      context: ./retail-store/services/orders
-      dockerfile: Dockerfile
     image: sumeet02/django-retail-orders:v1.1.0
     container_name: orders-service
     restart: unless-stopped
@@ -315,9 +303,6 @@ services:
 
 
   ui-service:
-    build:
-      context: ./retail-store/services/ui
-      dockerfile: Dockerfile
     image: sumeet02/django-retail-ui:v1.2.0
     container_name: ui-service
     restart: unless-stopped
@@ -368,7 +353,7 @@ services:
       retries: 3
       start_period: 35s
 
- 
+
   nginx:
     image: nginx:1.27-alpine
     container_name: nginx

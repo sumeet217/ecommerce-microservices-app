@@ -23,6 +23,16 @@ variables:
   # Service Names
   SERVICES: "auth catalog cart orders ui"
 
+  # Docker Hub — set DOCKER_HUB_USERNAME and DOCKER_HUB_TOKEN as CI/CD variables
+  DOCKER_REGISTRY: "docker.io"
+  DOCKER_HUB_NAMESPACE: "sumeet02"
+
+  # Image tag: use the git tag if available, otherwise short SHA
+  IMAGE_TAG: "${CI_COMMIT_TAG:-${CI_COMMIT_SHORT_SHA}}"
+
+  # Deployment directory on the EC2 server
+  DEPLOY_DIR: "/opt/retail-store"
+
 # Define pipeline stages
 stages:
   - clone
@@ -314,35 +324,51 @@ security_gate:
     - docker
 
 # ============================================
-# STAGE 5: BUILD
+# STAGE 5: BUILD & PUSH DOCKER IMAGES
 # ============================================
+# Images are built ONCE in CI, pushed to Docker Hub, then PULLED on the server.
+# The production server never compiles code or installs pip packages.
 
-build_artifacts:
+build_and_push_images:
   stage: build
-  image: python:${PYTHON_VERSION}-slim
+  image: docker:26-cli
+  services:
+    - docker:26-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    # Authenticate with Docker Hub using CI/CD secret variables
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin
   script:
-    - echo "Building application artifacts..."
+    - echo "Building and pushing Docker images — tag: ${IMAGE_TAG}"
     - |
+      # Map service folder names to their Docker Hub image names
+      declare -A IMAGE_NAMES
+      IMAGE_NAMES[auth]="django-auth-service"
+      IMAGE_NAMES[catalog]="django-retail-catalog"
+      IMAGE_NAMES[cart]="django-retail-cart"
+      IMAGE_NAMES[orders]="django-retail-orders"
+      IMAGE_NAMES[ui]="django-retail-ui"
+
       for service in $SERVICES; do
-        echo "Building service: $service"
-        cd services/$service
-        
-        # Install dependencies
-        pip install -r requirements.txt
-        
-        # Collect static files if applicable
-        if [ -f "manage.py" ]; then
-          python manage.py collectstatic --noinput --clear || true
-        fi
-        
-        cd $CI_PROJECT_DIR
+        IMAGE="${DOCKER_HUB_NAMESPACE}/${IMAGE_NAMES[$service]}"
+        echo "------ Building ${IMAGE}:${IMAGE_TAG} ------"
+
+        docker build \
+          --pull \
+          --cache-from "${IMAGE}:latest" \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
+          -t "${IMAGE}:${IMAGE_TAG}" \
+          -t "${IMAGE}:latest" \
+          services/$service
+
+        docker push "${IMAGE}:${IMAGE_TAG}"
+        docker push "${IMAGE}:latest"
+
+        echo "Pushed ${IMAGE}:${IMAGE_TAG}"
       done
-    - echo "Creating deployment archive..."
-    - tar -czf retail-store-${CI_COMMIT_SHORT_SHA}.tar.gz services/ --exclude='*.pyc' --exclude='__pycache__' --exclude='.pytest_cache'
-  artifacts:
-    paths:
-      - retail-store-${CI_COMMIT_SHORT_SHA}.tar.gz
-    expire_in: 1 week
+  after_script:
+    - docker logout
   only:
     - main
     - develop
@@ -350,99 +376,122 @@ build_artifacts:
     - docker
 
 # ============================================
-# STAGE 6: DEPLOY TO AWS EC2
+# STAGE 5b: TRIVY IMAGE SCAN (post-build)
 # ============================================
+# Scan the freshly pushed images for vulnerabilities before deploying.
+
+trivy_image_scan:
+  stage: build
+  image: aquasec/trivy:latest
+  needs:
+    - build_and_push_images
+  before_script:
+    - mkdir -p $TRIVY_CACHE_DIR
+  script:
+    - echo "Scanning Docker images for HIGH/CRITICAL CVEs..."
+    - |
+      declare -A IMAGE_NAMES
+      IMAGE_NAMES[auth]="django-auth-service"
+      IMAGE_NAMES[catalog]="django-retail-catalog"
+      IMAGE_NAMES[cart]="django-retail-cart"
+      IMAGE_NAMES[orders]="django-retail-orders"
+      IMAGE_NAMES[ui]="django-retail-ui"
+
+      for service in $SERVICES; do
+        IMAGE="${DOCKER_HUB_NAMESPACE}/${IMAGE_NAMES[$service]}:${IMAGE_TAG}"
+        echo "Scanning image: $IMAGE"
+
+        trivy image \
+          --severity HIGH,CRITICAL \
+          --format json \
+          --output trivy-image-report-$service.json \
+          --cache-dir $TRIVY_CACHE_DIR \
+          "$IMAGE" || true
+
+        trivy image \
+          --severity HIGH,CRITICAL \
+          --format table \
+          --cache-dir $TRIVY_CACHE_DIR \
+          "$IMAGE" || true
+      done
+  artifacts:
+    paths:
+      - trivy-image-report-*.json
+    expire_in: 1 week
+    when: always
+  only:
+    - main
+    - develop
+  tags:
+    - docker
+
+# ============================================
+# STAGE 6: DEPLOY TO AWS EC2  (pull images)
+# ============================================
+# The EC2 server ONLY pulls pre-built images and runs docker compose up.
+# No source code, no pip install, no build tools needed on the server.
 
 deploy_to_ec2:
   stage: deploy
   image: alpine:latest
+  needs:
+    - build_and_push_images
+    - trivy_image_scan
   before_script:
-    - apk add --no-cache openssh-client rsync bash curl
+    - apk add --no-cache openssh-client bash curl
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
   script:
-    - echo "Deploying to EC2 instance: $EC2_HOST"
-    
-    # Transfer deployment package
-    - echo "Transferring deployment package..."
-    - scp -o StrictHostKeyChecking=no retail-store-${CI_COMMIT_SHORT_SHA}.tar.gz ${EC2_USER}@${EC2_HOST}:/tmp/
-    
-    # Execute deployment commands on EC2
+    - echo "Deploying tag [${IMAGE_TAG}] to EC2: ${EC2_HOST}"
+
+    # ── 1. Push docker-compose files to the server ──────────────────────────
     - |
-      ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << 'ENDSSH'
+      scp -o StrictHostKeyChecking=no \
+        docker-compose.yml \
+        docker-compose.prod.yml \
+        .env \
+        ${EC2_USER}@${EC2_HOST}:${DEPLOY_DIR}/
+
+    # ── 2. Pull images and restart containers ───────────────────────────────
+    - |
+      ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} bash -s << ENDSSH
         set -e
-        
-        echo "Starting deployment process..."
-        
-        # Create deployment directory
-        DEPLOY_DIR="/opt/retail-store"
-        sudo mkdir -p $DEPLOY_DIR
-        
-        # Extract the package
-        echo "Extracting deployment package..."
-        cd /tmp
-        tar -xzf retail-store-*.tar.gz
-        
-        # Backup current deployment
-        if [ -d "$DEPLOY_DIR/services" ]; then
-          echo "Backing up current deployment..."
-          sudo mv $DEPLOY_DIR/services $DEPLOY_DIR/services.backup.$(date +%Y%m%d_%H%M%S)
-        fi
-        
-        # Move new deployment
-        echo "Deploying new version..."
-        sudo mv services $DEPLOY_DIR/
-        sudo chown -R $USER:$USER $DEPLOY_DIR
-        
-        # Install/update dependencies for each service
-        cd $DEPLOY_DIR
-        for service in auth catalog cart orders ui; do
-          echo "Setting up service: $service"
-          cd $DEPLOY_DIR/services/$service
-          
-          # Create virtual environment if not exists
-          if [ ! -d "venv" ]; then
-            python3 -m venv venv
-          fi
-          
-          # Activate and install dependencies
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install gunicorn
-          
-          # Run migrations
-          if [ -f "manage.py" ]; then
-            python manage.py migrate --noinput || true
-            python manage.py collectstatic --noinput --clear || true
-          fi
-          
-          deactivate
-        done
-        
-        # Restart services using systemd or supervisor
-        echo "Restarting services..."
-        sudo systemctl restart retail-store-* || true
-        
-        # Health check
-        echo "Performing health checks..."
-        sleep 5
-        curl -f http://localhost:8000/health || echo "Health check warning"
-        
-        # Cleanup
-        echo "Cleaning up..."
-        rm -f /tmp/retail-store-*.tar.gz
-        
-        echo "Deployment completed successfully!"
+        cd ${DEPLOY_DIR}
+
+        echo "=== Logging in to Docker Hub ==="
+        echo "\$DOCKER_HUB_TOKEN" | docker login -u "${DOCKER_HUB_USERNAME}" --password-stdin
+
+        echo "=== Pulling images for tag: ${IMAGE_TAG} ==="
+        IMAGE_TAG=${IMAGE_TAG} \
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+
+        echo "=== Saving current container IDs for rollback ==="
+        docker compose -f docker-compose.yml -f docker-compose.prod.yml ps -q > /tmp/previous_containers.txt || true
+
+        echo "=== Performing zero-downtime restart ==="
+        IMAGE_TAG=${IMAGE_TAG} \
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
+
+        echo "=== Waiting 30s for health checks ==="
+        sleep 30
+
+        echo "=== Container health status ==="
+        docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+
+        echo "=== Application health check ==="
+        curl -f http://localhost/health || { echo "Health check FAILED!"; exit 1; }
+
+        echo "=== Removing dangling images ==="
+        docker image prune -f
+
+        docker logout
+        echo "Deployment completed successfully — tag: ${IMAGE_TAG}"
       ENDSSH
-    
+
     - echo "Deployment to EC2 completed!"
-  dependencies:
-    - build_artifacts
   environment:
     name: production
     url: http://$EC2_HOST
@@ -453,41 +502,49 @@ deploy_to_ec2:
     - docker
 
 # ============================================
-# ROLLBACK JOB
+# ROLLBACK JOB  (pull previous image tag)
 # ============================================
+# Set the ROLLBACK_TAG CI/CD variable to the image tag you want to roll back to
+# (e.g. v1.1.0 or the previous short SHA), then trigger this job manually.
 
 rollback_deployment:
   stage: deploy
   image: alpine:latest
+  variables:
+    ROLLBACK_TAG: ""    # Override this in the GitLab "Run pipeline" dialog
   before_script:
-    - apk add --no-cache openssh-client
+    - apk add --no-cache openssh-client bash curl
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
   script:
-    - echo "Rolling back deployment on EC2..."
     - |
-      ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << 'ENDSSH'
+      if [ -z "$ROLLBACK_TAG" ]; then
+        echo "ERROR: Set the ROLLBACK_TAG variable to the image tag you want to restore."
+        exit 1
+      fi
+    - echo "Rolling back to tag: ${ROLLBACK_TAG}"
+    - |
+      ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} bash -s << ENDSSH
         set -e
-        
-        DEPLOY_DIR="/opt/retail-store"
-        BACKUP=$(ls -t $DEPLOY_DIR/services.backup.* 2>/dev/null | head -1)
-        
-        if [ -z "$BACKUP" ]; then
-          echo "No backup found to rollback to!"
-          exit 1
-        fi
-        
-        echo "Rolling back to: $BACKUP"
-        sudo rm -rf $DEPLOY_DIR/services
-        sudo mv $BACKUP $DEPLOY_DIR/services
-        
-        # Restart services
-        sudo systemctl restart retail-store-* || true
-        
-        echo "Rollback completed!"
+        cd ${DEPLOY_DIR}
+
+        echo "\$DOCKER_HUB_TOKEN" | docker login -u "${DOCKER_HUB_USERNAME}" --password-stdin
+
+        echo "=== Pulling rollback images — tag: ${ROLLBACK_TAG} ==="
+        IMAGE_TAG=${ROLLBACK_TAG} \
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+
+        echo "=== Restarting with rollback images ==="
+        IMAGE_TAG=${ROLLBACK_TAG} \
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
+
+        sleep 20
+        curl -f http://localhost/health || { echo "Rollback health check FAILED!"; exit 1; }
+
+        docker logout
+        echo "Rollback to ${ROLLBACK_TAG} completed!"
       ENDSSH
   only:
     - main
