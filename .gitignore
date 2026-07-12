@@ -1,0 +1,289 @@
+# ============================================================
+# Next.js / Node.js
+# ============================================================
+node_modules/
+.next/
+.next-cache/
+out/
+.vercel/
+.turbo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Next.js build output
+build/
+dist/
+
+
+# ============================================================
+# TypeScript
+# ============================================================
+*.tsbuildinfo
+next-env.d.ts
+
+
+# ============================================================
+# Drizzle ORM
+# ============================================================
+drizzle/
+!drizzle.config.json
+
+
+# ============================================================
+# Python / Django
+# ============================================================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+.Python
+
+# Distribution / packaging
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Django specific
+*.sqlite3
+*.sqlite3-journal
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+mediafiles/
+media/
+local_settings.py
+celerybeat-schedule
+celerybeat.pid
+
+# Database data directories (Docker volumes)
+postgres_data/
+catalog_db_data/
+orders_db_data/
+auth_db_data/
+redis_data/
+
+
+# ============================================================
+# Virtual Environments
+# ============================================================
+.venv/
+venv/
+env/
+ENV/
+virtualenv/
+
+
+# ============================================================
+# Environment Variables & Secrets
+# ============================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.crt
+secrets/
+
+# Docker environment overrides
+.env.local
+.env.production
+.env.staging
+.env.development
+
+
+# ============================================================
+# Testing & Coverage
+# ============================================================
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.coveragerc
+nosetests.xml
+test-results/
+.hypothesis/
+
+# Jest / Vitest
+coverage/
+jest.config.local.*
+
+
+# ============================================================
+# Type Checkers
+# ============================================================
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.pyre/
+
+
+# ============================================================
+# Docker
+# ============================================================
+docker-compose.override.yml
+docker-compose.local.yml
+
+
+# ============================================================
+# Logs
+# ============================================================
+*.log
+logs/
+log/
+gunicorn-error.log
+gunicorn-access.log
+nginx-error.log
+nginx-access.log
+supervisord.log
+
+
+# ============================================================
+# macOS
+# ============================================================
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+
+# ============================================================
+# Windows
+# ============================================================
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+
+# ============================================================
+# Linux
+# ============================================================
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+
+# ============================================================
+# IDEs & Editors — VS Code
+# ============================================================
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+*.code-workspace
+
+
+# ============================================================
+# IDEs & Editors — JetBrains (PyCharm, WebStorm, IntelliJ)
+# ============================================================
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.idea_modules/
+
+
+# ============================================================
+# IDEs & Editors — Vim / Neovim
+# ============================================================
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+Sessionx.vim
+.netrwhist
+tags
+[._]*.un~
+
+
+# ============================================================
+# IDEs & Editors — Emacs
+# ============================================================
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+.org-id-locations
+*_archive
+*_flymake.*
+/eshell/history
+/eshell/lastdir
+/elpa/
+*.rel
+
+
+# ============================================================
+# Temporary & Miscellaneous Files
+# ============================================================
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+.cache/
+tmp/
+temp/
+*.swp
+*.swo
+*.swn

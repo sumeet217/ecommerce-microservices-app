@@ -194,7 +194,6 @@ services:
       retries: 3
       start_period: 45s
 
-
   cart-service:
     image: sumeet02/django-retail-cart:v1.1.0
     container_name: cart-service
@@ -353,7 +352,6 @@ services:
       retries: 3
       start_period: 35s
 
-
   nginx:
     image: nginx:1.27-alpine
     container_name: nginx
@@ -382,7 +380,6 @@ services:
       retries: 3
       start_period: 15s
 
-
 volumes:
   auth_db_data:
     driver: local
@@ -392,7 +389,6 @@ volumes:
     driver: local
   redis_data:
     driver: local
-
 
 networks:
   retail-net:
