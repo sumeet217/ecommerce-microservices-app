@@ -111,8 +111,8 @@ pipeline {
             steps {
                 echo "Deploying on EC2"
                 sh """
-                    IMAGE_TAG=${IMAGE_TAG} docker-compose -f docker-compose.prod.yml pull
-                    IMAGE_TAG=${IMAGE_TAG} docker-compose -f docker-compose.prod.yml up -d --remove-orphans
+                    IMAGE_TAG=${IMAGE_TAG} docker-compose -f docker compose.prod.yml pull
+                    IMAGE_TAG=${IMAGE_TAG} docker-compose -f docker compose.prod.yml up -d --remove-orphans
                     docker image prune -f
                 """
                 echo "Deployment done! All services are up and running."
