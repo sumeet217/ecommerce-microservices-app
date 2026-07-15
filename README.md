@@ -46,62 +46,9 @@ A production-ready e-commerce platform built with microservices architecture usi
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     🌐  Internet / Browser                       │
-└────────────────────────────────┬────────────────────────────────┘
-                                 │  Port 80
-                    ┌────────────▼────────────┐
-                    │       Nginx Proxy        │
-                    │  routing + static files  │
-                    └──┬────┬─────┬──────┬────┘
-                       │    │     │      │
-         /api/v1/auth/ │    │     │      │ /api/v1/orders/
-      /api/v1/catalog/ │    │     │      │
-          /api/v1/cart/│    │     │      │
-                       │    │  /  │      │
-          ┌────────────▼┐   │  ┌──▼──────▼────┐   ┌────────────────┐
-          │Auth Service │   │  │  UI Service  │   │Orders Service  │
-          │  Port 8000  │   │  │  Nginx :80   │   │  Port 8003     │
-          │ Django+JWT  │   │  │  Gunicorn    │   │  Django REST   │
-          └──────┬──────┘   │  │  Port 8000   │   └───────┬────────┘
-                 │           │  └──────────────┘           │
-          ┌──────▼──────┐   │                         ┌────▼──────┐
-          │   auth-db   │   │  ┌────────────────┐     │ orders-db │
-          │  Postgres   │   │  │Catalog Service │     │ Postgres  │
-          └─────────────┘   │  │  Port 8001     │     └───────────┘
-                            │  │  DRF + PG      │
-                            │  └───────┬────────┘
-                            │      ┌───▼──────┐    ┌────────────────┐
-                            │      │catalog-db│    │  Cart Service  │
-                            │      │ Postgres │    │   Port 8002    │
-                            │      └──────────┘    │   DRF+Redis   │
-                            │                      └───────┬────────┘
-                            │                          ┌───▼───┐
-                            └──────────────────────────│ Redis │
-                                                       │ :6379 │
-                                                       └───────┘
-```
+![Architecture Diagram](images/architecture.png)
 
 > The UI Service is the only service exposed to the browser. It acts as a BFF, calling backend APIs over the internal Docker network.
-
-## 📸 Screenshots
-
-> **To add screenshots:** Take the images below and save them to the `images/` folder, then the README will display them automatically.
-
-### Storefront
-
-| Home Page | Product Listing | Product Detail |
-|-----------|----------------|----------------|
-| ![Home](images/screenshot-home.png) | ![Products](images/screenshot-products.png) | ![Detail](images/screenshot-product-detail.png) |
-
-| Cart | Checkout | Orders |
-|------|----------|--------|
-| ![Cart](images/screenshot-cart.png) | ![Checkout](images/screenshot-checkout.png) | ![Orders](images/screenshot-orders.png) |
-
-> 📷 **Screenshots to take:** Open `http://52.23.154.161` and capture each page above. Save as `images/screenshot-<name>.png`
-
----
 
 ---
 
@@ -306,23 +253,11 @@ CLONE → TEST → SECURITY SCAN → QUALITY GATE → BUILD → DEPLOY
  ~10s    ~4m       ~7m             ~30s         ~3m     ~4m
 ```
 
-### 📸 Pipeline Screenshots
+### 📸 Pipeline Screenshot
 
-**Jenkins Pipeline Overview**
+**Jenkins Pipeline — Stage View**
 ![Jenkins Pipeline](images/jenkins-pipeline-overview.png)
-> 📷 Go to `http://<EC2_IP>:8080` → your pipeline job → take a screenshot of the stage view
 
-**Jenkins Pipeline Success**
-![Jenkins Success](images/jenkins-pipeline-success.png)
-> 📷 Screenshot of a successful pipeline run showing all green stages
-
-**SonarQube Quality Gate**
-![SonarQube Dashboard](images/sonarqube-dashboard.png)
-> 📷 Go to `http://<EC2_IP>:9000` → your project → screenshot the main dashboard
-
-**SonarQube Issues & Coverage**
-![SonarQube Issues](images/sonarqube-issues.png)
-> 📷 Screenshot the Issues or Measures tab in SonarQube
 
 ### 🛡️ Security & Quality Features
 
@@ -408,13 +343,6 @@ The pipeline performs comprehensive security scanning:
 
 Quality gates enforce standards - **critical issues block deployment**.
 
-**OWASP Dependency Check Report**
-![OWASP Report](images/owasp-dependency-report.png)
-> 📷 Screenshot the HTML report generated in the pipeline artifacts
-
-**Trivy Scan Results**
-![Trivy Scan](images/trivy-scan-results.png)
-> 📷 Screenshot from the Jenkins console output of the Trivy stage
 
 ### 🎯 Deployment Process
 
@@ -500,18 +428,6 @@ PENDING ──► CONFIRMED ──► SHIPPED ──► DELIVERED
    │              │
    └──► CANCELLED ◄┘
 ```
-
----
-
-### 📸 API Documentation Screenshots
-
-**Auth API — Swagger UI**
-![Auth API Docs](images/api-docs-auth.png)
-> 📷 Open `http://52.23.154.161/api/docs/auth/` and screenshot the Swagger UI
-
-**Catalog API — Swagger UI**
-![Catalog API Docs](images/api-docs-catalog.png)
-> 📷 Open `http://52.23.154.161/api/docs/catalog/` and screenshot the Swagger UI
 
 ---
 
