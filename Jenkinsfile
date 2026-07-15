@@ -4,7 +4,7 @@ pipeline {
 
     environment {
         DOCKER_HUB_USER  = "sumeet02"
-        DOCKER_HUB_CREDS = credentials("dockerhub-creds")
+        DOCKER_HUB_CREDS = credentials("docker-hub-creds")
         NVD_API_KEY      = credentials("nvd-api-key")
 
         AUTH_IMAGE    = "${DOCKER_HUB_USER}/django-auth-service"
