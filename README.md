@@ -77,7 +77,7 @@ A production-ready e-commerce platform built with microservices architecture usi
                      │           UI Service             │
                      │  Django Templates + Bootstrap 5  │
                      │  (BFF — Backend for Frontend)    │
-                     │           :8080                  │
+                      │   Gunicorn :8000 / Nginx :80     │
                      └──────────────────────────────────┘
 ```
 
@@ -93,7 +93,7 @@ A production-ready e-commerce platform built with microservices architecture usi
 | **Catalog Service** | 8001 | PostgreSQL | Products, categories, search, inventory |
 | **Cart Service** | 8002 | Redis | Session-based shopping cart |
 | **Orders Service** | 8003 | PostgreSQL | Order placement, status lifecycle |
-| **UI Service** | 80 / 8080 | — | Server-rendered storefront (Django Templates + Bootstrap 5) |
+| **UI Service** | 80 (nginx) / 8000 (gunicorn) | — | Server-rendered storefront (Django Templates + Bootstrap 5) |
 
 ### Auth Service
 Handles all user identity and authentication for the platform. Provides JWT-based login with 15-minute access tokens and 7-day refresh tokens. Token blacklisting on logout prevents reuse. Exposes a `/verify/` endpoint that other microservices can call to validate tokens without sharing the secret key directly. Rate-limits the login endpoint to prevent brute-force attacks.
@@ -162,7 +162,7 @@ docker compose up --build -d
 | URL | Description |
 |---|---|
 | http://localhost | Storefront |
-| http://localhost:8080 | Direct UI (bypasses Nginx) |
+| http://localhost:3000 | Direct UI (bypasses Nginx, mapped in docker-compose) |
 | http://localhost:8004 | Auth Service (direct) |
 | http://localhost/api/docs/auth/ | Auth API docs (Swagger) |
 | http://localhost/api/docs/catalog/ | Catalog API docs (Swagger) |
@@ -190,6 +190,73 @@ docker compose restart auth-service
 # Run migrations manually
 docker compose exec auth-service python manage.py migrate
 ```
+
+---
+
+## Production Deployment (AWS EC2)
+
+### EC2 Security Group — Required Inbound Rules
+
+| Port | Protocol | Source | Purpose |
+|------|----------|--------|---------|
+| 22 | TCP | Your IP only | SSH access |
+| 80 | TCP | 0.0.0.0/0 | Nginx (main entry point for all traffic) |
+
+> ⚠️ Port 3000 (direct UI) and 8004 (auth) are only needed for debugging — keep them closed in production.
+
+### First-time EC2 Setup
+
+```bash
+# 1. SSH into your EC2 instance
+ssh -i your-key.pem ubuntu@<EC2_IP>
+
+# 2. Clone the repository
+git clone https://github.com/sumeet217/ecommerce-microservices-app.git
+cd ecommerce-microservices-app
+
+# 3. Create and configure .env (NEVER commit this file)
+cp .env.example .env
+nano .env
+```
+
+### ⚠️ Critical: .env changes required for production
+
+The `.env` file is gitignored and must be manually edited on the server.
+Add your EC2 public IP to **all five** `ALLOWED_HOSTS` entries:
+
+```bash
+# Replace <EC2_IP> with your actual public IP (e.g. 52.23.154.161)
+UI_DJANGO_ALLOWED_HOSTS=ui-service,localhost,127.0.0.1,nginx,<EC2_IP>
+AUTH_DJANGO_ALLOWED_HOSTS=auth-service,localhost,127.0.0.1,<EC2_IP>
+CATALOG_DJANGO_ALLOWED_HOSTS=catalog-service,localhost,127.0.0.1,<EC2_IP>
+CART_DJANGO_ALLOWED_HOSTS=cart-service,localhost,127.0.0.1,<EC2_IP>
+ORDERS_DJANGO_ALLOWED_HOSTS=orders-service,localhost,127.0.0.1,<EC2_IP>
+```
+
+### Deploy
+
+```bash
+# Start all services
+docker compose -f docker-compose.prod.yml up -d
+
+# Rebuild a single service after code changes (e.g. ui-service)
+docker compose -f docker-compose.prod.yml up -d --build ui-service
+
+# Watch logs
+docker compose -f docker-compose.prod.yml logs -f nginx ui-service
+
+# Health check
+curl -I http://<EC2_IP>
+```
+
+### Production Troubleshooting
+
+| Symptom | Likely Cause | Fix |
+|---------|-------------|-----|
+| `404` from nginx | Port mismatch between Gunicorn and ui-service internal nginx | Verify `UI_GUNICORN_PORT=8000` in `.env` and `upstream django_ui { server 127.0.0.1:8000; }` in `nginx/nginx.conf` |
+| `400 Bad Request` | EC2 IP missing from `DJANGO_ALLOWED_HOSTS` | Add public IP to all `*_DJANGO_ALLOWED_HOSTS` in `.env` on the server |
+| `403 CSRF` on POST | EC2 URL missing from `CSRF_TRUSTED_ORIGINS` | Add `http://<EC2_IP>` to `CSRF_TRUSTED_ORIGINS` in `docker-compose.prod.yml` |
+| `502 Bad Gateway` | Upstream service not running or not healthy | Run `docker ps` to check container health |
 
 ---
 
