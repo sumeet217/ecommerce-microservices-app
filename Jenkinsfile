@@ -21,14 +21,14 @@ pipeline {
 
         stage("Clone Code") {
             steps {
-                echo "========== Cloning code from GitHub =========="
+                echo "Cloning code from GitHub"
                 git url: "https://github.com/sumeet217/ecommerce-microservices-app.git", branch: "main"
             }
         }
 
         stage("Setup .env File") {
             steps {
-                echo "========== Setting up .env file =========="
+                echo "Setting up .env file"
                 withCredentials([file(credentialsId: "app-env-file", variable: "ENV_FILE")]) {
                     sh "cp \$ENV_FILE .env"
                 }
@@ -67,7 +67,7 @@ pipeline {
 
         stage("Build Docker Images") {
             steps {
-                echo "========== Building Docker Images =========="
+                echo "Building Docker Images"
                 sh "docker build -t ${AUTH_IMAGE}:${IMAGE_TAG}    ./retail-store/services/auth/"
                 sh "docker build -t ${CATALOG_IMAGE}:${IMAGE_TAG} ./retail-store/services/catalog/"
                 sh "docker build -t ${CART_IMAGE}:${IMAGE_TAG}    ./retail-store/services/cart/"
@@ -79,7 +79,7 @@ pipeline {
 
         stage("Push to Docker Hub") {
             steps {
-                echo "========== Pushing Images to Docker Hub =========="
+                echo "Pushing Images to Docker Hub"
                 sh "echo ${DOCKER_HUB_CREDS_PSW} | docker login -u ${DOCKER_HUB_CREDS_USR} --password-stdin"
                 sh "docker push ${AUTH_IMAGE}:${IMAGE_TAG}"
                 sh "docker push ${CATALOG_IMAGE}:${IMAGE_TAG}"
@@ -109,7 +109,7 @@ pipeline {
 
         stage("Deploy") {
             steps {
-                echo "========== Deploying on EC2 =========="
+                echo "Deploying on EC2"
                 sh """
                     IMAGE_TAG=${IMAGE_TAG} docker-compose -f docker-compose.prod.yml pull
                     IMAGE_TAG=${IMAGE_TAG} docker-compose -f docker-compose.prod.yml up -d --remove-orphans
@@ -121,7 +121,7 @@ pipeline {
 
         stage("Cleanup") {
             steps {
-                echo "========== Cleaning up local Docker images =========="
+                echo "Cleaning up local Docker images"
                 sh """
                     docker rmi -f ${AUTH_IMAGE}:${IMAGE_TAG}
                     docker rmi -f ${CATALOG_IMAGE}:${IMAGE_TAG}

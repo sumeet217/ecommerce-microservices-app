@@ -348,7 +348,7 @@ services:
       PRODUCTS_PER_PAGE: ${UI_PRODUCTS_PER_PAGE}
 
       # CSRF trusted origins — must include every host:port users access the UI from
-      CSRF_TRUSTED_ORIGINS: "http://localhost,http://localhost:8080,http://127.0.0.1,http://127.0.0.1:8080,http://nginx"
+      CSRF_TRUSTED_ORIGINS: "http://localhost,http://localhost:3000,http://127.0.0.1,http://127.0.0.1:3000,http://nginx"
 
       # Gunicorn (internal — Nginx proxies to this)
       GUNICORN_PORT:    ${UI_GUNICORN_PORT}
@@ -359,8 +359,8 @@ services:
     networks:
       - retail-net
     ports:
-      # Expose on host :8080 so you can reach the UI directly (bypassing Nginx)
-      - "8080:80"
+      # Expose on host :3000 so you can reach the UI directly (bypassing Nginx)
+      - "3000:80"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost/nginx-health || exit 1"]
       interval: 30s
