@@ -21,7 +21,7 @@ services:
       start_period: 15s
 
   auth-service:
-    image: sumeet02/django-auth-service:v1.1.0
+    image: sumeet02/django-auth-service:${IMAGE_TAG}
     container_name: auth-service
     restart: unless-stopped
     depends_on:
@@ -138,7 +138,7 @@ services:
 
 
   catalog-service:
-    image: sumeet02/django-retail-catalog:v1.1.0
+    image: sumeet02/django-retail-catalog:${IMAGE_TAG}
     container_name: catalog-service
     restart: unless-stopped
     depends_on:
@@ -195,7 +195,7 @@ services:
       start_period: 45s
 
   cart-service:
-    image: sumeet02/django-retail-cart:v1.1.0
+    image: sumeet02/django-retail-cart:${IMAGE_TAG}
     container_name: cart-service
     restart: unless-stopped
     depends_on:
@@ -247,7 +247,7 @@ services:
 
 
   orders-service:
-    image: sumeet02/django-retail-orders:v1.1.0
+    image: sumeet02/django-retail-orders:${IMAGE_TAG}
     container_name: orders-service
     restart: unless-stopped
     depends_on:
@@ -302,7 +302,7 @@ services:
 
 
   ui-service:
-    image: sumeet02/django-retail-ui:v1.2.0
+    image: sumeet02/django-retail-ui:${IMAGE_TAG}
     container_name: ui-service
     restart: unless-stopped
     depends_on:
