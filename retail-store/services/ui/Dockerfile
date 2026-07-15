@@ -4,7 +4,7 @@
 #  Stage 1 (builder): install Python deps + collect static files
 #  Stage 2 (runtime): Nginx + Gunicorn in a single container via supervisord
 #    - Nginx on :80  → serves static files, proxies to Gunicorn
-#    - Gunicorn on :8080 → Django UI app
+#    - Gunicorn on :8000 → Django UI app
 # ══════════════════════════════════════════════════════════════════════════════
 
 # ─── Stage 1: Python builder ─────────────────────────────────────────────────
