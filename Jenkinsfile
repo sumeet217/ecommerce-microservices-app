@@ -14,7 +14,7 @@ pipeline {
         UI_IMAGE      = "${DOCKER_HUB_USER}/django-retail-ui"
 
         IMAGE_TAG    = "v${BUILD_NUMBER}"
-        SONAR_SCANNER = tool('sonar-scanner')
+        SONAR_SCANNER = tool('sonar')
     }
 
     stages {
