@@ -332,7 +332,7 @@ services:
       PRODUCTS_PER_PAGE: ${UI_PRODUCTS_PER_PAGE}
 
       # CSRF trusted origins — must include every host:port users access the UI from
-      CSRF_TRUSTED_ORIGINS: "http://localhost,http://localhost:3000,http://127.0.0.1,http://127.0.0.1:3000,http://nginx"
+      CSRF_TRUSTED_ORIGINS: "http://localhost,http://localhost:3000,http://127.0.0.1,http://127.0.0.1:3000,http://nginx,http://52.23.154.161"
 
       # Gunicorn (internal — Nginx proxies to this)
       GUNICORN_PORT:    ${UI_GUNICORN_PORT}
