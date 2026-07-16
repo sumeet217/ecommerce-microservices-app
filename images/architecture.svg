@@ -1,0 +1,136 @@
+<svg viewBox="0 0 1000 760" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333"/>
+    </marker>
+    <marker id="arrowDashed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#888"/>
+    </marker>
+  </defs>
+
+  <style>
+    .label { font-size: 13px; fill: #222; }
+    .sublabel { font-size: 11px; fill: #555; }
+    .title { font-size: 15px; font-weight: 600; fill: #111; }
+    .port { font-size: 11px; fill: #777; }
+    .edge { stroke: #333; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+    .edge-dashed { stroke: #999; stroke-width: 1.4; stroke-dasharray: 5 4; fill: none; marker-end: url(#arrowDashed); }
+    .edge-label { font-size: 10.5px; fill: #666; }
+  </style>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="1000" height="760" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#111">RetailStore — Microservices Architecture</text>
+
+  <!-- Browser -->
+  <rect x="410" y="55" width="180" height="52" rx="10" fill="#f5f5f5" stroke="#888" stroke-width="1.3"/>
+  <text x="500" y="86" text-anchor="middle" class="label" font-weight="600">🌐 Browser / Client</text>
+
+  <!-- Arrow Browser -> UI -->
+  <path class="edge" d="M500,107 L500,140"/>
+
+  <!-- UI Service container -->
+  <rect x="330" y="140" width="340" height="100" rx="10" fill="#e8f4fd" stroke="#092E20" stroke-width="1.5"/>
+  <text x="500" y="162" text-anchor="middle" class="title">UI Service</text>
+  <text x="500" y="177" text-anchor="middle" class="port">Port 80 (Nginx) / 8000 (Gunicorn)</text>
+
+  <rect x="350" y="188" width="140" height="38" rx="6" fill="#ffffff" stroke="#092E20" stroke-width="1"/>
+  <text x="420" y="211" text-anchor="middle" class="sublabel" font-weight="600">Nginx (static)</text>
+
+  <rect x="510" y="188" width="140" height="38" rx="6" fill="#ffffff" stroke="#092E20" stroke-width="1"/>
+  <text x="580" y="211" text-anchor="middle" class="sublabel" font-weight="600">Gunicorn + Django</text>
+
+  <path class="edge" d="M490,207 L508,207" stroke-width="1.2"/>
+
+  <!-- BFF note -->
+  <text x="500" y="255" text-anchor="middle" class="sublabel" font-style="italic">Only service exposed to the browser — acts as a BFF over the internal Docker network</text>
+
+  <!-- Internal network label -->
+  <rect x="60" y="285" width="880" height="240" rx="12" fill="#fff8e1" stroke="#d8b84a" stroke-width="1.3" stroke-dasharray="2 0"/>
+  <text x="80" y="308" class="sublabel" font-weight="700" fill="#8a6d1a">INTERNAL DOCKER NETWORK</text>
+
+  <!-- Auth Service -->
+  <rect x="90" y="325" width="180" height="70" rx="8" fill="#ffffff" stroke="#333" stroke-width="1.3"/>
+  <text x="180" y="350" text-anchor="middle" class="label" font-weight="700">Auth Service</text>
+  <text x="180" y="366" text-anchor="middle" class="port">Port 8004</text>
+  <text x="180" y="382" text-anchor="middle" class="sublabel">JWT, register, verify</text>
+
+  <!-- Catalog Service -->
+  <rect x="300" y="325" width="180" height="70" rx="8" fill="#ffffff" stroke="#333" stroke-width="1.3"/>
+  <text x="390" y="350" text-anchor="middle" class="label" font-weight="700">Catalog Service</text>
+  <text x="390" y="366" text-anchor="middle" class="port">Port 8001</text>
+  <text x="390" y="382" text-anchor="middle" class="sublabel">Products, search, stock</text>
+
+  <!-- Cart Service -->
+  <rect x="510" y="325" width="180" height="70" rx="8" fill="#ffffff" stroke="#333" stroke-width="1.3"/>
+  <text x="600" y="350" text-anchor="middle" class="label" font-weight="700">Cart Service</text>
+  <text x="600" y="366" text-anchor="middle" class="port">Port 8002</text>
+  <text x="600" y="382" text-anchor="middle" class="sublabel">Session cart (Redis)</text>
+
+  <!-- Orders Service -->
+  <rect x="720" y="325" width="180" height="70" rx="8" fill="#ffffff" stroke="#333" stroke-width="1.3"/>
+  <text x="810" y="350" text-anchor="middle" class="label" font-weight="700">Orders Service</text>
+  <text x="810" y="366" text-anchor="middle" class="port">Port 8003</text>
+  <text x="810" y="382" text-anchor="middle" class="sublabel">Order lifecycle</text>
+
+  <!-- Cross-service dashed calls -->
+  <!-- Cart -> Catalog validate availability -->
+  <path class="edge-dashed" d="M580,395 C520,430 460,430 460,397"/>
+  <text x="520" y="445" text-anchor="middle" class="edge-label">validates availability</text>
+
+  <!-- Orders -> Cart reads live cart -->
+  <path class="edge-dashed" d="M760,397 C700,450 660,450 640,397"/>
+  <text x="700" y="465" text-anchor="middle" class="edge-label">reads live cart data</text>
+
+  <!-- Orders -> Auth verify token -->
+  <path class="edge-dashed" d="M840,397 C840,505 240,505 200,397"/>
+  <text x="520" y="518" text-anchor="middle" class="edge-label">verifies JWT (/verify/)</text>
+
+  <!-- Data stores -->
+  <ellipse cx="180" cy="470" rx="70" ry="26" fill="#4169E1" opacity="0.15" stroke="#4169E1" stroke-width="1.3"/>
+  <text x="180" y="466" text-anchor="middle" class="sublabel" font-weight="700">PostgreSQL</text>
+  <text x="180" y="480" text-anchor="middle" class="sublabel">auth_db</text>
+
+  <ellipse cx="390" cy="470" rx="70" ry="26" fill="#4169E1" opacity="0.15" stroke="#4169E1" stroke-width="1.3"/>
+  <text x="390" y="466" text-anchor="middle" class="sublabel" font-weight="700">PostgreSQL</text>
+  <text x="390" y="480" text-anchor="middle" class="sublabel">catalog_db</text>
+
+  <ellipse cx="600" cy="470" rx="70" ry="26" fill="#DC382D" opacity="0.15" stroke="#DC382D" stroke-width="1.3"/>
+  <text x="600" y="466" text-anchor="middle" class="sublabel" font-weight="700">Redis</text>
+  <text x="600" y="480" text-anchor="middle" class="sublabel">cart store</text>
+
+  <ellipse cx="810" cy="470" rx="70" ry="26" fill="#4169E1" opacity="0.15" stroke="#4169E1" stroke-width="1.3"/>
+  <text x="810" y="466" text-anchor="middle" class="sublabel" font-weight="700">PostgreSQL</text>
+  <text x="810" y="480" text-anchor="middle" class="sublabel">orders_db</text>
+
+  <!-- vertical connectors service->db -->
+  <path class="edge" d="M180,395 L180,444" stroke-width="1.2"/>
+  <path class="edge" d="M390,395 L390,444" stroke-width="1.2"/>
+  <path class="edge" d="M600,395 L600,444" stroke-width="1.2"/>
+  <path class="edge" d="M810,395 L810,444" stroke-width="1.2"/>
+
+  <!-- UI -> each service solid arrows -->
+  <path class="edge" d="M420,240 C300,270 200,290 180,323"/>
+  <path class="edge" d="M460,240 C420,260 400,290 390,323"/>
+  <path class="edge" d="M560,240 C580,260 595,290 600,323"/>
+  <path class="edge" d="M620,240 C720,270 800,290 810,323"/>
+
+  <!-- Legend -->
+  <line x1="700" y1="600" x2="740" y2="600" class="edge"/>
+  <text x="750" y="604" class="sublabel">direct API call</text>
+
+  <line x1="700" y1="622" x2="740" y2="622" class="edge-dashed"/>
+  <text x="750" y="626" class="sublabel">cross-service validation call</text>
+
+  <ellipse cx="720" cy="650" rx="18" ry="10" fill="#4169E1" opacity="0.15" stroke="#4169E1" stroke-width="1.3"/>
+  <text x="750" y="654" class="sublabel">PostgreSQL store</text>
+
+  <ellipse cx="720" cy="675" rx="18" ry="10" fill="#DC382D" opacity="0.15" stroke="#DC382D" stroke-width="1.3"/>
+  <text x="750" y="679" class="sublabel">Redis store</text>
+
+  <text x="500" y="720" text-anchor="middle" class="sublabel" font-style="italic">Each service owns its own data store — no shared database across microservices</text>
+
+</svg>

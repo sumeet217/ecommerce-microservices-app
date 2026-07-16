@@ -46,7 +46,7 @@ A production-ready e-commerce platform built with microservices architecture usi
 
 ## Architecture
 
-![Architecture Diagram](images/architecture.png)
+![Architecture Diagram](images/architecture.svg)
 
 > The UI Service is the only service exposed to the browser. It acts as a BFF, calling backend APIs over the internal Docker network.
 
@@ -256,7 +256,7 @@ CLONE → TEST → SECURITY SCAN → QUALITY GATE → BUILD → DEPLOY
 ### 📸 Pipeline Screenshot
 
 **Jenkins Pipeline — Stage View**
-![Jenkins Pipeline](images/jenkins-pipeline-overview.png)
+![Jenkins Pipeline](images/pipelinestageview.png)
 
 
 ### 🛡️ Security & Quality Features
