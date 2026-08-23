@@ -1,4 +1,4 @@
-# RetailStore — Django Microservices E-Commerce
+# RetailStore - Django Microservices E-Commerce
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Django](https://img.shields.io/badge/Django-5.0-092E20?logo=django&logoColor=white)](https://djangoproject.com)
@@ -6,17 +6,17 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://postgresql.org)
 [![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)](https://redis.io)
 [![Docker](https://img.shields.io/badge/Docker-24%2B-2496ED?logo=docker&logoColor=white)](https://docker.com)
-[![GitLab CI/CD](https://img.shields.io/badge/CI%2FCD-GitLab-orange?logo=gitlab)](https://gitlab.com)
+[![Jenkins](https://img.shields.io/badge/CI%2FCD-Jenkins-red?logo=jenkins)](https://jenkins.io)
 [![DevSecOps](https://img.shields.io/badge/DevSecOps-Enabled-success)](https://devsecops.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-A production-ready e-commerce platform built with microservices architecture using Django and Django REST Framework. Each service is independently deployable, scalable, and owns its data store, following best practices for distributed systems.
+A production-ready e-commerce platform built with microservices architecture using Django and Django REST Framework. Each service is independently deployable, scalable, and maintains its own data store, following best practices for distributed systems.
 
 ## Table of Contents
 
 - [Features](#features)
 - [Architecture](#architecture)
-- [Services](#services)
+- [Services Overview](#services-overview)
 - [Technology Stack](#technology-stack)
 - [Getting Started](#getting-started)
 - [CI/CD Pipeline](#cicd-pipeline)
@@ -39,8 +39,8 @@ A production-ready e-commerce platform built with microservices architecture usi
 - **Docker Ready**: Full containerization with Docker Compose orchestration
 - **Production Grade**: Rate limiting, health checks, and proper error handling
 - **Comprehensive Tests**: pytest-based test suite with factory patterns
-- **DevSecOps Pipeline**: GitLab CI/CD with security scanning and quality gates
-- **AWS Deployment**: Automated EC2 deployment with rollback capability
+- **DevSecOps Pipeline**: Automated CI/CD with security scanning and quality gates
+- **AWS Deployment**: Automated EC2 deployment with health checks
 
 ---
 
@@ -48,41 +48,46 @@ A production-ready e-commerce platform built with microservices architecture usi
 
 ![Architecture Diagram](images/architecture.svg)
 
-> The UI Service is the only service exposed to the browser. It acts as a BFF, calling backend APIs over the internal Docker network.
+The UI Service is the only service exposed to the browser. It acts as a Backend-for-Frontend (BFF), calling backend APIs over the internal Docker network.
 
 ---
 
 ## Services Overview
 
 | Service | Port | Database | Responsibility |
-|---|---|---|---|
+|---------|------|----------|----------------|
 | **Auth Service** | 8004 | PostgreSQL | User registration, JWT authentication, token management |
 | **Catalog Service** | 8001 | PostgreSQL | Products, categories, search, inventory |
 | **Cart Service** | 8002 | Redis | Session-based shopping cart |
 | **Orders Service** | 8003 | PostgreSQL | Order placement, status lifecycle |
-| **UI Service** | 80 (nginx) / 8000 (gunicorn) | — | Server-rendered storefront (Django Templates + Bootstrap 5) |
+| **UI Service** | 80 (nginx) / 8000 (gunicorn) | None | Server-rendered storefront (Django Templates + Bootstrap 5) |
 
 ### Auth Service
+
 Handles all user identity and authentication for the platform. Provides JWT-based login with 15-minute access tokens and 7-day refresh tokens. Token blacklisting on logout prevents reuse. Exposes a `/verify/` endpoint that other microservices can call to validate tokens without sharing the secret key directly. Rate-limits the login endpoint to prevent brute-force attacks.
 
 ### Catalog Service
-Manages the product catalogue — products, categories, images, and flexible attributes. Supports full-text search, category filtering, featured product listing, and auto-marks items `out_of_stock` when inventory hits zero.
+
+Manages the product catalogue - products, categories, images, and flexible attributes. Supports full-text search, category filtering, featured product listing, and auto-marks items `out_of_stock` when inventory hits zero.
 
 ### Cart Service
-Stateless from the app layer — all cart state lives in Redis. Validates product availability against Catalog before adding. Enforces a max of 50 items and 99 units per item. Carts expire after 7 days. Identified via `X-Session-Key` header.
+
+Stateless from the application layer - all cart state lives in Redis. Validates product availability against Catalog before adding items. Enforces a maximum of 50 items and 99 units per item. Carts expire after 7 days of inactivity. Identified via `X-Session-Key` header.
 
 ### Orders Service
-Places orders by pulling live cart data, then freezes prices as immutable line items. Enforces a strict status machine: `PENDING → CONFIRMED → SHIPPED → DELIVERED`. Customers can cancel `PENDING` or `CONFIRMED` orders.
+
+Places orders by pulling live cart data, then freezes prices as immutable line items. Enforces a strict status machine: PENDING -> CONFIRMED -> SHIPPED -> DELIVERED. Customers can cancel PENDING or CONFIRMED orders.
 
 ### UI Service
-Six-page Django app: Home, Product Listing, Product Detail, Cart, Checkout, Order History & Detail. No database — uses signed-cookie sessions. Nginx serves static files; Gunicorn handles Django requests; Supervisord manages both in a single container.
+
+Six-page Django application: Home, Product Listing, Product Detail, Cart, Checkout, Order History & Detail. No database - uses signed-cookie sessions. Nginx serves static files; Gunicorn handles Django requests; Supervisord manages both processes in a single container.
 
 ---
 
-## Tech Stack
+## Technology Stack
 
 | Layer | Technology |
-|---|---|
+|-------|------------|
 | Language | Python 3.12 |
 | Web Framework | Django 5.0, Django REST Framework 3.15 |
 | Authentication | djangorestframework-simplejwt 5.3 (JWT + token blacklisting) |
@@ -92,51 +97,63 @@ Six-page Django app: Home, Product Listing, Product Detail, Cart, Checkout, Orde
 | Relational DB | PostgreSQL 16 |
 | Cache / Cart Store | Redis 7 |
 | API Schema | drf-spectacular (OpenAPI 3) |
-| Config Management | python-decouple |
+| Configuration | python-decouple |
 | Testing | pytest, pytest-django, factory-boy, Faker |
-| Containerisation | Docker, multi-stage Dockerfile per service |
+| Containerization | Docker, multi-stage Dockerfile per service |
+| CI/CD | Jenkins |
 
 ---
 
-## Local Setup (Docker Compose)
+## Getting Started
 
 ### Prerequisites
 
 - Docker 24+ and Docker Compose v2
+- Git
 
-### 1. Clone the repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/sumeet217/ecommerce-microservices-app.git
 cd ecommerce-microservices-app
 ```
 
-### 2. Configure environment variables
+### 2. Configure Environment Variables
 
 ```bash
 cp .env.example .env
-# Edit .env and set all DJANGO_SECRET_KEY, DB passwords, and JWT settings
+# Edit .env and set all required variables:
+# - DJANGO_SECRET_KEY for each service
+# - Database passwords
+# - JWT settings
 ```
 
-### 3. Build and start all services
+### 3. Build and Start All Services
 
 ```bash
 docker compose up --build -d
 ```
 
-### 4. Access the app
+### 4. Access the Application
 
 | URL | Description |
-|---|---|
-| http://localhost | Storefront |
-| http://localhost:3000 | Direct UI (bypasses Nginx, mapped in docker-compose) |
-| http://localhost:8004 | Auth Service (direct) |
-| http://localhost/api/docs/auth/ | Auth API docs (Swagger) |
-| http://localhost/api/docs/catalog/ | Catalog API docs (Swagger) |
-| http://localhost/api/docs/cart/ | Cart API docs (Swagger) |
-| http://localhost/api/docs/orders/ | Orders API docs (Swagger) |
+|-----|-------------|
+| http://localhost | Storefront (Nginx) |
+| http://localhost:8004 | Auth Service API |
+| http://localhost:8001 | Catalog Service API |
+| http://localhost:8002 | Cart Service API |
+| http://localhost:8003 | Orders Service API |
 
-### Useful commands
+### API Documentation (Swagger UI)
+
+Access interactive API documentation at:
+
+- Auth Service: `http://localhost:8004/api/docs/`
+- Catalog Service: `http://localhost:8001/api/docs/`
+- Cart Service: `http://localhost:8002/api/docs/`
+- Orders Service: `http://localhost:8003/api/docs/`
+
+### Useful Commands
 
 ```bash
 # View logs for all services
@@ -148,7 +165,7 @@ docker compose logs -f auth-service
 # Stop all services
 docker compose down
 
-# Fresh start (removes volumes / databases)
+# Fresh start (removes volumes and databases)
 docker compose down -v
 
 # Restart a single service
@@ -156,22 +173,27 @@ docker compose restart auth-service
 
 # Run migrations manually
 docker compose exec auth-service python manage.py migrate
+
+# Access service shell
+docker compose exec catalog-service python manage.py shell
 ```
 
 ---
 
 ## Production Deployment (AWS EC2)
 
-### EC2 Security Group — Required Inbound Rules
+### EC2 Security Group Configuration
+
+**Required Inbound Rules:**
 
 | Port | Protocol | Source | Purpose |
 |------|----------|--------|---------|
 | 22 | TCP | Your IP only | SSH access |
-| 80 | TCP | 0.0.0.0/0 | Nginx (main entry point for all traffic) |
+| 80 | TCP | 0.0.0.0/0 | HTTP (Nginx entry point) |
 
-> ⚠️ Port 3000 (direct UI) and 8004 (auth) are only needed for debugging — keep them closed in production.
+**Note:** Service ports (8001-8004) should remain closed in production. All traffic routes through Nginx on port 80.
 
-### First-time EC2 Setup
+### Initial EC2 Setup
 
 ```bash
 # 1. SSH into your EC2 instance
@@ -181,18 +203,17 @@ ssh -i your-key.pem ubuntu@<EC2_IP>
 git clone https://github.com/sumeet217/ecommerce-microservices-app.git
 cd ecommerce-microservices-app
 
-# 3. Create and configure .env (NEVER commit this file)
+# 3. Create and configure .env file
 cp .env.example .env
 nano .env
 ```
 
-### ⚠️ Critical: .env changes required for production
+### Critical: Production Environment Configuration
 
-The `.env` file is gitignored and must be manually edited on the server.
-Add your EC2 public IP to **all five** `ALLOWED_HOSTS` entries:
+The `.env` file is gitignored and must be manually configured on the server. Add your EC2 public IP to all `ALLOWED_HOSTS` entries:
 
 ```bash
-# Replace <EC2_IP> with your actual public IP (e.g. 52.23.154.161)
+# Replace <EC2_IP> with your actual public IP (e.g., 52.23.154.161)
 UI_DJANGO_ALLOWED_HOSTS=ui-service,localhost,127.0.0.1,nginx,<EC2_IP>
 AUTH_DJANGO_ALLOWED_HOSTS=auth-service,localhost,127.0.0.1,<EC2_IP>
 CATALOG_DJANGO_ALLOWED_HOSTS=catalog-service,localhost,127.0.0.1,<EC2_IP>
@@ -200,13 +221,13 @@ CART_DJANGO_ALLOWED_HOSTS=cart-service,localhost,127.0.0.1,<EC2_IP>
 ORDERS_DJANGO_ALLOWED_HOSTS=orders-service,localhost,127.0.0.1,<EC2_IP>
 ```
 
-### Deploy
+### Deploy Application
 
 ```bash
-# Start all services
+# Start all services in production mode
 docker compose -f docker-compose.prod.yml up -d
 
-# Rebuild a single service after code changes (e.g. ui-service)
+# Rebuild a specific service after code changes
 docker compose -f docker-compose.prod.yml up -d --build ui-service
 
 # Watch logs
@@ -219,215 +240,225 @@ curl -I http://<EC2_IP>
 ### Production Troubleshooting
 
 | Symptom | Likely Cause | Fix |
-|---------|-------------|-----|
-| `404` from nginx | Port mismatch between Gunicorn and ui-service internal nginx | Verify `UI_GUNICORN_PORT=8000` in `.env` and `upstream django_ui { server 127.0.0.1:8000; }` in `nginx/nginx.conf` |
-| `400 Bad Request` | EC2 IP missing from `DJANGO_ALLOWED_HOSTS` | Add public IP to all `*_DJANGO_ALLOWED_HOSTS` in `.env` on the server |
-| `403 CSRF` on POST | EC2 URL missing from `CSRF_TRUSTED_ORIGINS` | Add `http://<EC2_IP>` to `CSRF_TRUSTED_ORIGINS` in `docker-compose.prod.yml` |
-| `502 Bad Gateway` | Upstream service not running or not healthy | Run `docker ps` to check container health |
-
----
-
-## DockerHub Images
-
-Pre-built images are available on Docker Hub:
-
-| Service | Image |
-|---|---|
-| Catalog Service | [`sumeet217/retailstore-catalog`](https://hub.docker.com/r/sumeet217/retailstore-catalog) |
-| Cart Service | [`sumeet217/retailstore-cart`](https://hub.docker.com/r/sumeet217/retailstore-cart) |
-| Orders Service | [`sumeet217/retailstore-orders`](https://hub.docker.com/r/sumeet217/retailstore-orders) |
-| UI Service | [`sumeet217/retailstore-ui`](https://hub.docker.com/r/sumeet217/retailstore-ui) |
-
-> **Auth Service** is built locally from `./retail-store/services/auth` via `docker compose up --build`.
+|---------|--------------|-----|
+| 404 from nginx | Port mismatch or service not running | Verify service is healthy: `docker ps` |
+| 400 Bad Request | EC2 IP missing from `DJANGO_ALLOWED_HOSTS` | Add public IP to all `*_DJANGO_ALLOWED_HOSTS` in `.env` |
+| 403 CSRF error | EC2 URL missing from `CSRF_TRUSTED_ORIGINS` | Add `http://<EC2_IP>` to `CSRF_TRUSTED_ORIGINS` in `docker-compose.prod.yml` |
+| 502 Bad Gateway | Upstream service not responding | Check container health: `docker compose logs <service>` |
 
 ---
 
 ## CI/CD Pipeline
 
-This project includes a **production-ready DevSecOps CI/CD pipeline** for GitLab, featuring automated testing, security scanning, quality gates, and AWS EC2 deployment.
+This project includes a production-ready DevSecOps CI/CD pipeline using Jenkins, featuring automated testing, security scanning, quality gates, and AWS EC2 deployment.
 
-### 🎯 Pipeline Stages
+### Pipeline Architecture
 
 ```
-CLONE → TEST → SECURITY SCAN → QUALITY GATE → BUILD → DEPLOY
- ~10s    ~4m       ~7m             ~30s         ~3m     ~4m
+CLONE -> SETUP -> SONAR ANALYSIS -> QUALITY GATE -> OWASP SCAN -> TRIVY FS SCAN -> BUILD -> PUSH -> TRIVY IMAGE SCAN -> DEPLOY -> CLEANUP
+ ~10s    ~5s         ~2m              ~30s          ~5m          ~3m        ~4m    ~2m        ~3m              ~1m      ~30s
 ```
 
-### 📸 Pipeline Screenshot
-
-**Jenkins Pipeline — Stage View**
 ![Jenkins Pipeline](images/pipelinestageview.png)
 
+### Pipeline Stages
 
-### 🛡️ Security & Quality Features
+**1. Clone Code**
+- Clones repository from GitHub
+- Checks out main branch
 
-| Category | Tools |
-|----------|-------|
-| **Code Quality** | pytest, coverage, flake8, black, isort |
-| **Security Scanning** | SonarQube, OWASP Dependency Check, Bandit, Trivy |
-| **Quality Gates** | Automated enforcement, pipeline fails on critical issues |
-| **Deployment** | Automated EC2 deployment, health checks, rollback |
+**2. Setup .env File**
+- Loads environment variables from Jenkins credentials
+- Securely configures application settings
 
-### 📦 CI/CD Files Location
+**3. SonarQube Quality Analysis**
+- Performs static code analysis
+- Identifies code smells, bugs, and security hotspots
+- Generates quality metrics
 
-All CI/CD configuration is in the `retail-store/` directory:
+**4. Sonar Quality Gate**
+- Enforces code quality standards
+- Pipeline continues even if gate fails (non-blocking)
+- Provides visibility into code quality trends
 
-```
-retail-store/
-├── .gitlab-ci.yml              # Main CI/CD pipeline (6 stages)
-├── sonar-project.properties    # SonarQube configuration
-├── suppression.xml             # OWASP suppression rules
-├── setup-ec2.sh                # EC2 instance setup script
-├── README_CI_CD.md             # CI/CD overview
-├── CI_CD_SETUP.md              # Detailed setup guide
-├── QUICK_REFERENCE.md          # Quick operations reference
-├── PIPELINE_ARCHITECTURE.md    # Visual architecture docs
-└── IMPLEMENTATION_SUMMARY.md   # Implementation summary
-```
+**5. OWASP Dependency Check**
+- Scans Python dependencies for known CVEs
+- Uses National Vulnerability Database (NVD) API
+- Generates XML reports for review
 
-### 🚀 Quick Setup
+**6. Trivy File System Scan**
+- Scans codebase for vulnerabilities
+- Detects HIGH and CRITICAL severity issues
+- Produces detailed security reports
 
-1. **Configure GitLab Variables** (Settings → CI/CD → Variables):
-   ```
-   SONAR_HOST_URL      # SonarQube server URL
-   SONAR_TOKEN         # SonarQube auth token (Masked)
-   AWS_DEFAULT_REGION  # AWS region (e.g., us-east-1)
-   EC2_HOST            # EC2 instance IP or hostname
-   EC2_USER            # SSH user (e.g., ubuntu)
-   SSH_PRIVATE_KEY     # SSH private key content (File, Masked)
-   ```
+**7. Build Docker Images**
+- Builds images for all 5 microservices
+- Tags with build number (e.g., `v42`)
+- Uses multi-stage builds for optimization
 
-2. **Setup EC2 Instance**:
-   ```bash
-   # Copy and run setup script on EC2
-   scp retail-store/setup-ec2.sh ubuntu@<EC2_HOST>:~/
-   ssh ubuntu@<EC2_HOST>
-   sudo ./setup-ec2.sh
-   ```
+**8. Push to Docker Hub**
+- Authenticates with Docker Hub credentials
+- Pushes all service images with version tags
+- Makes images available for deployment
 
-3. **Push Code to Trigger Pipeline**:
-   ```bash
-   git add .
-   git commit -m "feat: add CI/CD pipeline"
-   git push
-   ```
+**9. Trivy Image Scan**
+- Scans built Docker images for vulnerabilities
+- Checks each of the 5 service images
+- Reports HIGH and CRITICAL severity issues
 
-### 📊 Service Architecture on EC2
+**10. Deploy**
+- Pulls latest images on EC2
+- Updates services using docker-compose
+- Performs rolling deployment with zero downtime
 
-```
-Internet → Nginx (Port 80) → Django Services
-                               ├── Auth (8001)
-                               ├── Catalog (8002)
-                               ├── Cart (8003)
-                               ├── Orders (8004)
-                               └── UI (8000)
-```
+**11. Cleanup**
+- Removes local Docker images
+- Prunes unused containers and build cache
+- Secures environment by removing .env file
 
-All services run as systemd services with automatic restarts and health monitoring.
+### Security and Quality Features
 
-### 📚 Detailed Documentation
+| Category | Tools | Purpose |
+|----------|-------|---------|
+| **Code Quality** | SonarQube | Static code analysis, code smells, maintainability |
+| **Dependency Security** | OWASP Dependency Check | Known CVEs in Python packages |
+| **File System Security** | Trivy (FS) | Vulnerabilities in source code and files |
+| **Image Security** | Trivy (Image) | Vulnerabilities in Docker images |
+| **Quality Gates** | SonarQube Quality Gate | Enforces coding standards |
 
-- **[README_CI_CD.md](retail-store/README_CI_CD.md)** - Complete CI/CD overview
-- **[CI_CD_SETUP.md](retail-store/CI_CD_SETUP.md)** - Step-by-step setup instructions
-- **[QUICK_REFERENCE.md](retail-store/QUICK_REFERENCE.md)** - Common commands and operations
-- **[PIPELINE_ARCHITECTURE.md](retail-store/PIPELINE_ARCHITECTURE.md)** - Visual pipeline diagrams
+### Jenkins Configuration Requirements
 
-### 🔍 Security Scanning
+**Required Jenkins Plugins:**
+- Docker Pipeline
+- SonarQube Scanner
+- OWASP Dependency-Check
+- Credentials Binding
 
-The pipeline performs comprehensive security scanning:
+**Required Jenkins Credentials:**
 
-1. **SonarQube**: Code quality, security hotspots, code smells
-2. **OWASP Dependency Check**: Known CVEs in Python dependencies
-3. **Bandit**: Python-specific security linting
-4. **Trivy**: Filesystem vulnerability scanning
+| Credential ID | Type | Description |
+|---------------|------|-------------|
+| `docker-hub-creds` | Username/Password | Docker Hub authentication |
+| `nvd-api-key` | Secret Text | National Vulnerability Database API key |
+| `app-env-file` | Secret File | Production .env configuration |
 
-Quality gates enforce standards - **critical issues block deployment**.
+**Required Jenkins Tools:**
+- SonarQube Scanner (configured as 'sonar')
+- OWASP Dependency Check (configured as 'owaspDC')
+- Docker (available in PATH)
+- Trivy (installed on Jenkins agent)
 
+### Docker Hub Images
 
-### 🎯 Deployment Process
+All service images are automatically pushed to Docker Hub with version tags:
 
-1. **Automated Testing**: All tests must pass
-2. **Security Scanning**: No critical vulnerabilities
-3. **Quality Gate**: SonarQube standards enforced
-4. **Build Artifacts**: Deployment package created
-5. **Manual Approval**: Deploy to production (main branch only)
-6. **Health Checks**: Automatic verification post-deployment
-7. **Rollback**: One-click rollback to previous version
+| Service | Docker Hub Repository |
+|---------|----------------------|
+| Auth Service | `sumeet02/django-auth-service` |
+| Catalog Service | `sumeet02/django-retail-catalog` |
+| Cart Service | `sumeet02/django-retail-cart` |
+| Orders Service | `sumeet02/django-retail-orders` |
+| UI Service | `sumeet02/django-retail-ui` |
+
+Images are tagged with build numbers (e.g., `v42`, `v43`) for version tracking and rollback capability.
 
 ---
 
-## API Endpoints
+## API Documentation
 
-### Auth Service — `http://localhost:8004`
+### Auth Service - http://localhost:8004
 
 ```
-POST /api/v1/auth/register/   Register a new user (returns JWT tokens)
-POST /api/v1/auth/login/      Login with email + password (rate-limited: 10/min)
-POST /api/v1/auth/refresh/    Exchange refresh token for a new access token
-POST /api/v1/auth/logout/     Blacklist the refresh token (invalidate session)
-GET  /api/v1/auth/me/         Get current user profile (requires JWT)
-PATCH /api/v1/auth/me/        Update first_name, last_name, email (requires JWT)
-POST /api/v1/auth/verify/     Validate a JWT token (for inter-service use)
-GET  /health/                 Health check
+POST   /api/v1/auth/register/   Register a new user (returns JWT tokens)
+POST   /api/v1/auth/login/      Login with email + password (rate-limited: 10/min)
+POST   /api/v1/auth/refresh/    Exchange refresh token for a new access token
+POST   /api/v1/auth/logout/     Blacklist the refresh token (invalidate session)
+GET    /api/v1/auth/me/         Get current user profile (requires JWT)
+PATCH  /api/v1/auth/me/         Update user profile (first_name, last_name, email)
+POST   /api/v1/auth/verify/     Validate a JWT token (for inter-service use)
+GET    /health/                 Health check endpoint
 ```
 
-**Authentication flow:**
+**Authentication Flow:**
+
 ```
-Register/Login  →  { access_token, refresh_token }
-                        │
-    access_token ────►  Bearer <token> header on protected requests
-    refresh_token ───►  POST /refresh/ to get a new access_token
-                        POST /logout/  to blacklist the refresh_token
+Register/Login  ->  { access_token, refresh_token }
+                        |
+    access_token ---->  Include as: Authorization: Bearer <token>
+    refresh_token --->  POST /refresh/ -> get new access_token
+                        POST /logout/  -> blacklist refresh_token
 ```
 
-**JWT token lifetimes:**
+**JWT Token Lifetimes:**
+
 | Token | Lifetime |
-|---|---|
-| Access token | 15 minutes |
-| Refresh token | 7 days |
+|-------|----------|
+| Access Token | 15 minutes |
+| Refresh Token | 7 days |
 
-### Catalog Service — `http://localhost:8001`
+### Catalog Service - http://localhost:8001
 
 ```
 GET  /api/v1/catalog/products/           List products (paginated, filterable)
-GET  /api/v1/catalog/products/<id>/      Retrieve a product
-GET  /api/v1/catalog/products/featured/  Featured products
-GET  /api/v1/catalog/products/search/?q= Full-text search
-GET  /api/v1/catalog/categories/         List categories
-GET  /api/v1/catalog/categories/<id>/    Retrieve a category
-GET  /health/                            Health check
+GET  /api/v1/catalog/products/<id>/      Retrieve a single product
+GET  /api/v1/catalog/products/featured/  List featured products
+GET  /api/v1/catalog/products/search/?q= Full-text search across products
+GET  /api/v1/catalog/categories/         List all categories
+GET  /api/v1/catalog/categories/<id>/    Retrieve a single category
+GET  /health/                            Health check endpoint
 ```
 
-### Cart Service — `http://localhost:8002`
-> All endpoints require `X-Session-Key: <key>` header.
+**Query Parameters:**
+
+- `?category=<id>` - Filter products by category
+- `?search=<term>` - Search products by name or description
+- `?page=<num>` - Pagination
+- `?featured=true` - Show only featured products
+
+### Cart Service - http://localhost:8002
+
+**Note:** All cart endpoints require `X-Session-Key: <key>` header.
 
 ```
 GET    /api/v1/cart/         Retrieve cart for session
 POST   /api/v1/cart/add/     Add a product to cart
 PUT    /api/v1/cart/update/  Update item quantity
-DELETE /api/v1/cart/remove/  Remove a single item
+DELETE /api/v1/cart/remove/  Remove a single item from cart
 DELETE /api/v1/cart/clear/   Clear entire cart
-GET    /health/              Health check
+GET    /health/              Health check endpoint
 ```
 
-### Orders Service — `http://localhost:8003`
-> All endpoints require `X-User-Id: <id>` header.
+**Cart Limits:**
+
+- Maximum 50 unique items per cart
+- Maximum 99 units per item
+- Carts expire after 7 days of inactivity
+
+### Orders Service - http://localhost:8003
+
+**Note:** All order endpoints require `X-User-Id: <id>` header.
 
 ```
 GET  /api/v1/orders/             List orders for user (paginated)
 POST /api/v1/orders/place/       Place order from current cart
 GET  /api/v1/orders/<id>/        Retrieve a single order
-PUT  /api/v1/orders/<id>/cancel/ Cancel an order
-GET  /health/                    Health check
+PUT  /api/v1/orders/<id>/cancel/ Cancel an order (if allowed)
+GET  /health/                    Health check endpoint
 ```
 
-### Order Status Machine
+**Order Status Flow:**
 
 ```
-PENDING ──► CONFIRMED ──► SHIPPED ──► DELIVERED
-   │              │
-   └──► CANCELLED ◄┘
+PENDING ---> CONFIRMED ---> SHIPPED ---> DELIVERED
+   |              |
+   |              |
+   +---> CANCELLED <---+
 ```
+
+**Cancellation Rules:**
+
+- Orders can be cancelled only in `PENDING` or `CONFIRMED` status
+- `SHIPPED` and `DELIVERED` orders cannot be cancelled
 
 ---
 
@@ -436,95 +467,236 @@ PENDING ──► CONFIRMED ──► SHIPPED ──► DELIVERED
 ### Application Security
 
 | Feature | Implementation |
-|---|---|
-| Password hashing | PBKDF2 (Django default) |
-| JWT algorithm | HS256 |
-| Token blacklisting | `rest_framework_simplejwt.token_blacklist` |
-| Login rate limiting | 10 requests/minute (ScopedRateThrottle) |
-| UUID user IDs | Prevents sequential enumeration |
-| Email normalisation | Case-insensitive, lowercased on register & login |
+|---------|----------------|
+| Password Hashing | PBKDF2 (Django default, 390,000 iterations) |
+| JWT Algorithm | HS256 |
+| Token Blacklisting | `rest_framework_simplejwt.token_blacklist` |
+| Login Rate Limiting | 10 requests/minute per user (ScopedRateThrottle) |
+| User IDs | UUID v4 (prevents sequential enumeration) |
+| Email Normalization | Case-insensitive, lowercased on registration & login |
 | CORS | Configurable per-service via `CORS_ALLOWED_ORIGINS` |
+| CSRF Protection | Enabled for UI service, token-based for APIs |
 
 ### CI/CD Security
 
-The GitLab pipeline includes **4 layers of security scanning**:
+The Jenkins pipeline includes four layers of security scanning:
 
-| Tool | Purpose | Blocks Pipeline |
-|------|---------|-----------------|
-| **SonarQube** | Code quality & security hotspots | ✅ Quality gate |
-| **OWASP Dependency Check** | Known CVEs in dependencies | ✅ Critical vulns |
-| **Bandit** | Python security linting | ⚠️ Warning only |
-| **Trivy** | Filesystem vulnerabilities | ✅ Critical vulns |
+| Tool | Purpose | Severity Threshold |
+|------|---------|-------------------|
+| **SonarQube** | Static code analysis, security hotspots | Quality gate enforcement |
+| **OWASP Dependency Check** | Known CVEs in Python dependencies | HIGH, CRITICAL |
+| **Trivy (File System)** | Vulnerabilities in source code | HIGH, CRITICAL |
+| **Trivy (Image)** | Vulnerabilities in Docker images | HIGH, CRITICAL |
 
 **Security Best Practices Enforced:**
-- ✅ No hardcoded secrets (GitLab masked variables)
-- ✅ SSH key-based authentication only
-- ✅ Automated backup before deployment
-- ✅ Quality gates block vulnerable code
-- ✅ Security scan reports in every pipeline run
+
+- No hardcoded secrets (Jenkins masked credentials)
+- Environment variables managed via secure credential storage
+- SSH key-based authentication only
+- Docker images scanned before deployment
+- Quality gates enforce security standards
+- Security scan reports generated for every build
+
+### Network Security
+
+- Services communicate over internal Docker network
+- Only Nginx (port 80) exposed to public internet
+- Inter-service communication uses service names (Docker DNS)
+- Database ports not exposed to host
+- Redis accessible only within Docker network
 
 ---
 
-## Running Tests
+## Testing
 
-Each service has an independent test suite using pytest, factory-boy, and Faker. Tests run against SQLite in-memory — no real database required.
+Each service has an independent test suite using pytest, factory-boy, and Faker. Tests run against SQLite in-memory database - no PostgreSQL required for testing.
 
 ### Local Testing
 
 ```bash
-# Auth Service (35+ test cases)
-cd retail-store/services/auth    && pytest
+# Auth Service
+cd retail-store/services/auth
+pytest -v
 
 # Catalog Service
-cd retail-store/services/catalog && pytest
+cd retail-store/services/catalog
+pytest -v
 
-# Cart Service (uses fakeredis — no Redis needed)
-cd retail-store/services/cart    && pytest
+# Cart Service (uses fakeredis)
+cd retail-store/services/cart
+pytest -v
 
 # Orders Service
-cd retail-store/services/orders  && pytest
+cd retail-store/services/orders
+pytest -v
+
+# Run with coverage report
+pytest --cov=apps --cov-report=html
 ```
+
+### Test Coverage
+
+- **Auth Service**: 35+ test cases covering registration, login, token refresh, logout, profile management
+- **Catalog Service**: Product CRUD, category management, search, featured products, inventory
+- **Cart Service**: Add/update/remove items, cart limits, session management, expiration
+- **Orders Service**: Order placement, status transitions, cancellation, validation
 
 ### CI/CD Testing
 
-The GitLab pipeline automatically runs:
+Tests are automatically executed in the Jenkins pipeline:
 
-- ✅ **Unit Tests**: All services tested in parallel
-- ✅ **Code Coverage**: Cobertura reports generated
-- ✅ **Linting**: flake8, black, isort checks
-- ✅ **Security Linting**: Bandit for Python security issues
+- All services tested in parallel
+- Test results published as JUnit XML
+- Coverage reports generated
+- Pipeline fails if any tests fail
 
-**Test Reports Available:**
-- JUnit XML (test results)
-- Cobertura XML (coverage reports)
-- HTML reports (downloadable artifacts)
+---
 
-Pipeline **fails automatically** if tests don't pass.
+## Docker Images
+
+All service images are published to Docker Hub and available for public use:
+
+| Service | Docker Hub Repository | Latest Tag |
+|---------|----------------------|------------|
+| Auth Service | [`sumeet02/django-auth-service`](https://hub.docker.com/r/sumeet02/django-auth-service) | `v{BUILD_NUMBER}` |
+| Catalog Service | [`sumeet02/django-retail-catalog`](https://hub.docker.com/r/sumeet02/django-retail-catalog) | `v{BUILD_NUMBER}` |
+| Cart Service | [`sumeet02/django-retail-cart`](https://hub.docker.com/r/sumeet02/django-retail-cart) | `v{BUILD_NUMBER}` |
+| Orders Service | [`sumeet02/django-retail-orders`](https://hub.docker.com/r/sumeet02/django-retail-orders) | `v{BUILD_NUMBER}` |
+| UI Service | [`sumeet02/django-retail-ui`](https://hub.docker.com/r/sumeet02/django-retail-ui) | `v{BUILD_NUMBER}` |
+
+### Using Pre-built Images
+
+```bash
+# Pull specific version
+docker pull sumeet02/django-auth-service:v42
+
+# Use in docker-compose (set IMAGE_TAG environment variable)
+IMAGE_TAG=v42 docker compose -f docker-compose.prod.yml up -d
+```
 
 ---
 
 ## Contributing
 
-Contributions are welcome! Please follow these steps:
+Contributions are welcome! Please follow these guidelines:
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Commit your changes (`git commit -m 'Add your feature'`)
-4. Push to the branch (`git push origin feature/your-feature`)
-5. Open a Pull Request
+1. **Fork the Repository**
+   ```bash
+   git fork https://github.com/sumeet217/ecommerce-microservices-app.git
+   ```
 
-Please ensure your code follows the existing style and includes appropriate tests.
+2. **Create a Feature Branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+3. **Make Your Changes**
+   - Follow PEP 8 style guidelines
+   - Add tests for new functionality
+   - Update documentation as needed
+
+4. **Run Tests**
+   ```bash
+   pytest
+   ```
+
+5. **Commit Your Changes**
+   ```bash
+   git commit -m "feat: add your feature description"
+   ```
+
+6. **Push to Your Fork**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+7. **Open a Pull Request**
+   - Provide a clear description of changes
+   - Reference any related issues
+   - Ensure all CI checks pass
+
+### Code Style
+
+- Follow PEP 8 for Python code
+- Use meaningful variable and function names
+- Add docstrings for classes and functions
+- Keep functions small and focused
+- Write self-documenting code
+
+### Commit Message Convention
+
+```
+feat: add new feature
+fix: fix a bug
+docs: update documentation
+test: add or update tests
+refactor: refactor code
+style: format code
+chore: update build scripts or dependencies
+```
+
+---
+
+## Project Structure
+
+```
+ecommerce-microservices-app/
+├── retail-store/
+│   └── services/
+│       ├── auth/              # Authentication service
+│       │   ├── apps/          # Django apps
+│       │   ├── auth_service/  # Project settings
+│       │   ├── tests/         # Test suite
+│       │   └── Dockerfile
+│       ├── catalog/           # Product catalog service
+│       ├── cart/              # Shopping cart service
+│       ├── orders/            # Order management service
+│       └── ui/                # Frontend UI service
+├── nginx/                     # Nginx configuration
+├── images/                    # Documentation images
+├── docker-compose.yml         # Local development setup
+├── docker-compose.prod.yml    # Production deployment
+├── Jenkinsfile               # CI/CD pipeline definition
+├── .env.example              # Environment variables template
+└── README.md                 # This file
+```
+
+---
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
 
 ---
 
 ## Author
 
 **Sumeet Mankari**
+
 - GitHub: [@sumeet217](https://github.com/sumeet217)
-- Project: [ecommerce-microservices-app](https://github.com/sumeet217/ecommerce-microservices-app)
+- Project Repository: [ecommerce-microservices-app](https://github.com/sumeet217/ecommerce-microservices-app)
+- Docker Hub: [@sumeet02](https://hub.docker.com/u/sumeet02)
 
 ---
 
-## License
+## Acknowledgments
 
-This project is licensed under the MIT License.
+- Django and Django REST Framework communities
+- PostgreSQL and Redis teams
+- Docker and Docker Compose
+- Jenkins and DevSecOps tool maintainers
+- All contributors to this project
+
+---
+
+## Support
+
+For issues, questions, or contributions:
+
+1. **Issues**: Open an issue on [GitHub Issues](https://github.com/sumeet217/ecommerce-microservices-app/issues)
+2. **Discussions**: Start a discussion on [GitHub Discussions](https://github.com/sumeet217/ecommerce-microservices-app/discussions)
+3. **Pull Requests**: Submit PRs following the contribution guidelines
+
+---
+
+**Built with Django • Deployed with Docker • Secured with DevSecOps**
